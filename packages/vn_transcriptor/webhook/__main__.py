@@ -19,17 +19,26 @@ def confirm_webhook_subscription(event: dict) -> dict:
         return {"body": event.get('hub.challenge', ''), "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
 
 
-def get_format_from_mime_type(mime_type: str) -> str:
-    if mime_type == 'audio/aac':
-        return 'aac'
-    elif mime_type == 'audio/mp4':
-        return 'm4a'
-    elif mime_type == 'audio/mpeg':
-        return 'mp3'
-    elif mime_type == 'audio/amr':
-        return 'amr'
-    elif mime_type == 'audio/ogg':
-        return 'ogg'
+def process_text(phone_number_id: str, sender: str, text: str = ""):
+    if text == "":
+        message = "Hola! Envíame un audio para responderte con la transcripción del mismo."
+    else:
+        message = text
+    response = requests.post(
+        url=f"https://graph.facebook.com/v19.0/{phone_number_id}/messages",
+        headers={'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}'},
+        data={
+            'messaging_product': 'whatsapp',
+            'to': f'{sender}',
+            'text': { 'body': f'{message}' },
+        }
+    )
+    response.raise_for_status()
+
+
+def validate_mime_type(audio_mime_type: str) -> bool:
+    valid_mime_types = ['flac', 'mp3', 'mp4', 'mpeg', 'mpga', 'm4a', 'ogg', 'wav', 'webm']
+    return any(mime_type in audio_mime_type for mime_type in valid_mime_types)
 
 
 def get_audio_file(audio_id: str) -> BytesIO:
@@ -39,7 +48,8 @@ def get_audio_file(audio_id: str) -> BytesIO:
     }
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    file_url, file_hash = response.json()['url'], response.json()['sha256']
+    response_json = response.json()
+    file_url, file_hash = response_json()['url'], response_json()['sha256']
     file_response = requests.get(file_url, headers=headers)
     file_response.raise_for_status()
     hashed_content = hashlib.sha256(file_response.content).hexdigest()
@@ -48,48 +58,20 @@ def get_audio_file(audio_id: str) -> BytesIO:
     return BytesIO(file_response.content)
 
 
-def convert_audio(audio_file: BytesIO, mime_type: str) -> BytesIO:
-    audio_format = get_format_from_mime_type(mime_type)
-    if audio_format == 'ogg':
-        sound = AudioSegment.from_file(audio_file, format=audio_format, codec='opus')
-    else:
-        sound = AudioSegment.from_file(audio_file, format=audio_format)
-    converted_audio = BytesIO()
-    sound.export(converted_audio, format='mp3')
-    return converted_audio
-
-
 def process_audio(audio_id: str, audio_mime_type: str, phone_number_id: str, sender: str, client: OpenAI):
+    if not validate_mime_type(audio_mime_type):
+        process_text(
+            phone_number_id,
+            sender,
+            f"Lo siento, el formato del audio no es válido. Los formatos válidos son: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav y webm. El formato del audio que enviaste es: ```{audio_mime_type}```"
+        )
     with get_audio_file(audio_id) as audio_file:
-        with convert_audio(audio_file, audio_mime_type) as converted_audio:
-            transcription = client.audio.transcriptions.create(
-                model="whisper-1", 
-                file=converted_audio,
-                temperature=0.7
-            ).text
-            response = requests.post(
-                url=f"https://graph.facebook.com/v19.0/{phone_number_id}/messages",
-                headers={'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}'},
-                data={
-                    'messaging_product': 'whatsapp',
-                    'to': f'{sender}',
-                    'text': { 'body': f'{transcription}' },
-                }
-            )
-            response.raise_for_status()
-
-
-def process_text(phone_number_id: str, sender: str):
-    response = requests.post(
-        url=f"https://graph.facebook.com/v19.0/{phone_number_id}/messages",
-        headers={'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}'},
-        data={
-            'messaging_product': 'whatsapp',
-            'to': f'{sender}',
-            'text': { 'body': 'Hola! Envíame un audio para responderte con la transcripción del mismo.' },
-        }
-    )
-    response.raise_for_status()
+        transcription = client.audio.transcriptions.create(
+            model="whisper-1", 
+            file=audio_file,
+            temperature=0.7
+        ).text
+        process_text(phone_number_id, sender, transcription)
 
 
 def process_change(change: dict, client: OpenAI):
@@ -100,9 +82,17 @@ def process_change(change: dict, client: OpenAI):
     metadata = value['metadata']
     for message in messages:
         if message['type'] == 'audio':
-            process_audio('audio', message['audio']['id'], metadata['phone_number_id'], message['from'], client)
+            process_audio(
+                audio_id=message['audio']['id'],
+                audio_mime_type=message['audio']['mime_type'],
+                phone_number_id=metadata['phone_number_id'],
+                sender=message['from'],
+                client=client
+            )
         if message['type'] == 'text':
             process_text(metadata['phone_number_id'], message['from'])
+        else:
+            process_text(metadata['phone_number_id'], message['from'], f"Lo siento, no puedo procesar este mensaje de tipo: ```{message['type']}```.")
 
 
 def process_event(event: dict, client: OpenAI):
@@ -124,12 +114,12 @@ def main(event: dict, _) -> dict:
     elif event['http']['method'] == 'GET':
         return confirm_webhook_subscription(event)
     elif event['http']['method'] == 'POST':
-        client = OpenAI(os.environ.get("OPENAI_API_KEY"))
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         try:
             process_event(event, client)
         except Exception as e:
             print(f"Failed to process the request: {str(e)}")
             clean_event = {key: value for key, value in event.items() if not (key.startswith('__ow') or key == 'http')}
             print(f"Request body: {json.dumps(clean_event)}")
-            return {"body": "Invalid request", "statusCode": 400, "headers": GET_RESULT_CONTENT_TYPE}
+            return {"body": "", "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
         return {"body": "", "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
