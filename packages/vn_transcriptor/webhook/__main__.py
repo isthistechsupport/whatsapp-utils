@@ -33,6 +33,7 @@ def process_text(phone_number_id: str, sender: str, text: str = ""):
             'text': { 'body': f'{message}' },
         }
     )
+    print(f"Response: {response.json()}")
     response.raise_for_status()
 
 
