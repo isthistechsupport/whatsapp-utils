@@ -105,13 +105,13 @@ def process_change(change: dict, client: OpenAI):
             process_audio(
                 audio_id=message['audio']['id'],
                 phone_number_id=metadata['phone_number_id'],
-                sender=message['from'],
+                sender=f'+{message['from']}',
                 client=client
             )
         if message['type'] == 'text':
-            process_text(metadata['phone_number_id'], message['from'])
+            process_text(metadata['phone_number_id'], f'+{message['from']}')
         else:
-            process_text(metadata['phone_number_id'], message['from'], f"Lo siento, no puedo procesar este mensaje de tipo: ```{message['type']}```.")
+            process_text(metadata['phone_number_id'], f'+{message['from']}', f"Lo siento, no puedo procesar este mensaje de tipo: ```{message['type']}```.")
 
 
 def process_event(event: dict, client: OpenAI):
