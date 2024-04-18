@@ -38,11 +38,11 @@ def process_text(phone_number_id: str, sender: str, text: str = ""):
             "body": f"{message}"
         }
     }
-    print(f"Request: {data}")
+    print(f"Request: {json.dumps(data)}")
     response = requests.post(
         url=url,
         headers=headers,
-        data=data
+        data=json.dumps(data)
     )
     print(f"Response: {response.json()}")
     response.raise_for_status()
