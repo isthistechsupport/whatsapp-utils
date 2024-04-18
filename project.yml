@@ -1,0 +1,24 @@
+parameters: {}
+environment: {}
+packages:
+  - name: vn_transcriptor
+    shared: false
+    environment: {}
+    parameters: {}
+    annotations: {}
+    functions:
+    - name: webhook
+      binary: false
+      main: ""
+      runtime: python:3.11
+      web: true
+      webSecure: false
+      parameters: {}
+      environment:
+        VERIFICATION_TOKEN: "${VERIFICATION_TOKEN}"
+        GRAPH_API_TOKEN: "${GRAPH_API_TOKEN}"
+        OPENAI_API_KEY: "${OPENAI_API_KEY}"
+        LOG_DESTINATIONS: "[{\"papertrail\":{\"token\":\"${PAPERTRAIL_TOKEN}\"}}]"
+      annotations: {}
+      limits:
+        timeout: 30000
