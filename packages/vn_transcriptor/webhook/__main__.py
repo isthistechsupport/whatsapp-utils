@@ -116,7 +116,9 @@ def process_event(event: dict, client: OpenAI):
 
 def main(event: dict, _) -> dict:
     print("New request received")
-    if 'http' not in event:
+    if event.get('heartbeat', False):
+        return {"body": "I'm alive", "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
+    elif 'http' not in event:
         return {"body": "Invalid request", "statusCode": 400, "headers": GET_RESULT_CONTENT_TYPE}
     elif event['http']['method'] == 'GET':
         if event['http']['path'] == '/heatbeat':
