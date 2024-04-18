@@ -2,8 +2,8 @@ import os
 import json
 import hashlib
 import requests
+from time import sleep
 from io import BytesIO
-from pydub import AudioSegment
 from openai import OpenAI
 
 
@@ -72,7 +72,13 @@ def process_audio(audio_id: str, audio_mime_type: str, phone_number_id: str, sen
             file=audio_file,
             temperature=0.7
         ).text
-        process_text(phone_number_id, sender, transcription)
+        if len(transcription) > 4000:
+            segments = [transcription[i:i+4000] for i in range(0, len(transcription), 4000)]
+            for segment in segments:
+                process_text(phone_number_id, sender, segment)
+                sleep(1)
+        else:
+            process_text(phone_number_id, sender, transcription)
 
 
 def process_change(change: dict, client: OpenAI):
@@ -113,6 +119,8 @@ def main(event: dict, _) -> dict:
     if 'http' not in event:
         return {"body": "Invalid request", "statusCode": 400, "headers": GET_RESULT_CONTENT_TYPE}
     elif event['http']['method'] == 'GET':
+        if event['http']['path'] == '/heatbeat':
+            return {"body": "I'm alive", "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
         return confirm_webhook_subscription(event)
     elif event['http']['method'] == 'POST':
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
