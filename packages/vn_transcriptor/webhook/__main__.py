@@ -28,9 +28,14 @@ def process_text(phone_number_id: str, sender: str, text: str = ""):
         url=f"https://graph.facebook.com/v19.0/{phone_number_id}/messages",
         headers={'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}'},
         data={
-            'messaging_product': 'whatsapp',
-            'to': f'{sender}',
-            'text': { 'body': f'{message}' },
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": f"{sender}",
+            "type": "text",
+            "text": {
+                "preview_url": "false",
+                "body": f"{text}"
+            }
         }
     )
     print(f"Response: {response.json()}")
