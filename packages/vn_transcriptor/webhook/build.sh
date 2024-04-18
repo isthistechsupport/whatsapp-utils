@@ -8,5 +8,4 @@ virtualenv --without-pip virtualenv
 # pip install -r requirements.txt --target virtualenv/lib/python3.9/site-packages
 
 # Uncomment if you're using the Python 3.11 runtime
-echo "Installing dependencies for Python 3.11"
 pip install -r requirements.txt --target virtualenv/lib/python3.11/site-packages
