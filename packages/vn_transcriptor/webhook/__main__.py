@@ -24,19 +24,25 @@ def process_text(phone_number_id: str, sender: str, text: str = ""):
         message = "Hola! Envíame un audio para responderte con la transcripción del mismo."
     else:
         message = text
-    response = requests.post(
-        url=f"https://graph.facebook.com/v19.0/{phone_number_id}/messages",
-        headers={'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}'},
-        data={
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": f"{sender}",
-            "type": "text",
-            "text": {
-                "preview_url": "false",
-                "body": f"{text}"
-            }
+    url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
+    headers = {
+        'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}',
+    }
+    data = {
+        "messaging_product": "whatsapp",
+        "recipient_type": "individual",
+        "to": f"{sender}",
+        "type": "text",
+        "text": {
+            "preview_url": "false",
+            "body": f"{message}"
         }
+    }
+    print(f"Request: {data}")
+    response = requests.post(
+        url=url,
+        headers=headers,
+        data=data
     )
     print(f"Response: {response.json()}")
     response.raise_for_status()
