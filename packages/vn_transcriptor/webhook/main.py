@@ -89,7 +89,6 @@ def transcribe_audio(audio_buffer: BytesIO, audio_mime_type: str) -> str:
         'model': (None, 'whisper-1'),
         'temperature': (None, '0.7'),
     }
-
     response = requests.post('https://api.openai.com/v1/audio/transcriptions', headers=headers, files=files)
     return response.json()['text']
 
