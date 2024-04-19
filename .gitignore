@@ -8,3 +8,5 @@ package-lock.json
 .env
 .venv
 event.json
+test_file.ogg
+tester.py 
