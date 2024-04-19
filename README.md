@@ -36,7 +36,7 @@ This project is hosted in the DigitalOcean Functions free tier. Get a $200 credi
 
 - Deploy the function by running `doctl serverless deploy .` on the repo root directory.
 
-- Get the deployment URL by running `doctl sls fn get vn_transcriptor/webhook --url`. This is the URL you need to supply to your Meta app under App Dashboard -> WhatsApp -> Configuration -> Webhook -> Edit in the Callback URL field, and then in the Verify token field you must supply the same `VERIFICATION_TOKEN` from the `.env` file. Then click `Verify and save`
+- Get the deployment URL by running `doctl sls fn get whatsapp/webhook --url`. This is the URL you need to supply to your Meta app under App Dashboard -> WhatsApp -> Configuration -> Webhook -> Edit in the Callback URL field, and then in the Verify token field you must supply the same `VERIFICATION_TOKEN` from the `.env` file. Then click `Verify and save`
 
 - Back in the Configuration page, click Manage to launch the App Dashboard Webhook Fields dialog and click Subscribe under the messages webhoook event.
 
@@ -46,4 +46,4 @@ This project is hosted in the DigitalOcean Functions free tier. Get a $200 credi
 
 ## License
 
-This code is open sourced under the [MIT license](https://github.com/isthistechsupport/vn_webhooks/blob/main/LICENSE.md)
+This code is open sourced under the [MIT license](https://github.com/isthistechsupport/whatsapp-vn-transcriber/blob/main/LICENSE.md)
