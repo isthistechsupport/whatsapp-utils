@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import hashlib
 import requests
 from time import sleep
@@ -7,6 +8,7 @@ from io import BytesIO
 
 
 GET_RESULT_CONTENT_TYPE = {'Content-Type': 'text/plain'}
+logger = logging.getLogger(__name__)
 
 
 def confirm_webhook_subscription(event: dict) -> dict:
@@ -33,7 +35,7 @@ def mark_as_read(phone_number_id: str, message_id: str):
     response.raise_for_status()
 
 
-def process_text(phone_number_id: str, sender: str, text: str, reply_to_id: str = None):
+def send_text(phone_number_id: str, sender: str, text: str, reply_to_id: str = None):
     url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
     payload = {
         "messaging_product": "whatsapp",
@@ -114,7 +116,7 @@ def process_audio(audio_id: str) -> list[str]:
 def process_change(change: dict):
     if 'value' not in change or 'messages' not in change['value'] or 'metadata' not in change['value'] or len(change['value']['messages']) == 0:
         return
-    print("New request received")
+    logger.info(f"Processing change: {change}")
     value = change['value']
     messages = value['messages']
     metadata = value['metadata']
@@ -123,7 +125,7 @@ def process_change(change: dict):
         mark_as_read(phone_number_id=metadata['phone_number_id'], message_id=message_id)
         if message['type'] == 'audio':
             for result in process_audio(audio_id=message['audio']['id']):
-                process_text(
+                send_text(
                     phone_number_id=metadata['phone_number_id'],
                     sender=f'+{message["from"]}',
                     text=result,
@@ -131,14 +133,14 @@ def process_change(change: dict):
                 )
                 sleep(1)
         elif message['type'] == 'text':
-            process_text(
+            send_text(
                 phone_number_id=metadata['phone_number_id'],
                 sender=f'+{message["from"]}',
                 text="¡Hola! Envíame un audio para responderte con la transcripción de este.",
                 reply_to_id=message_id
             )
         else:
-            process_text(
+            send_text(
                 phone_number_id=metadata['phone_number_id'],
                 sender=f'+{message["from"]}',
                 text=f"Lo siento, no puedo procesar este mensaje de tipo: ```{message['type']}```",
@@ -173,8 +175,8 @@ def main(event: dict, _) -> dict:
         try:
             process_event(event)
         except Exception as e:
-            print(f"Failed to process the request: {str(e)}")
+            logger.error("Failed to process the request: %s", e, exc_info=True, stack_info=True)
             clean_event = {key: value for key, value in event.items() if not (key.startswith('__ow') or key == 'http')}
-            print(f"Request body: {json.dumps(clean_event)}")
+            logger.debug(f"Request body: {json.dumps(clean_event)}")
             return {"body": "", "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
         return {"body": "", "statusCode": 200, "headers": GET_RESULT_CONTENT_TYPE}
