@@ -18,6 +18,8 @@ packages:
         VERIFICATION_TOKEN: "${VERIFICATION_TOKEN}"
         GRAPH_API_TOKEN: "${GRAPH_API_TOKEN}"
         OPENAI_API_KEY: "${OPENAI_API_KEY}"
+        MS_SPEECH_REGION: "${MS_SPEECH_REGION}"
+        MS_SPEECH_KEY: "${MS_SPEECH_KEY}"
         LOG_DESTINATIONS: "[{\"papertrail\":{\"token\":\"${PAPERTRAIL_TOKEN}\"}}]"
       annotations: {}
       limits:

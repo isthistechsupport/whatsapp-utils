@@ -10,3 +10,4 @@ package-lock.json
 event.json
 test_file.ogg
 tester.py 
+*.mp3
