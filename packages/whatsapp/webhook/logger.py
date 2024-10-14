@@ -42,6 +42,13 @@ def init_logging():
             },
         },
         "handlers": {
+            "syslog": {
+                "class": "logging.handlers.SysLogHandler",
+                "address": ("localhost", 514),
+                "formatter": "default",
+                "filters": ["context_filter"],
+                "level": logging.INFO,
+            },
             "stdout": {
                 "class": "logging.StreamHandler",
                 "stream": sys.stdout,
@@ -59,7 +66,7 @@ def init_logging():
         },
         "loggers": {
             "": {
-                "handlers": ["stdout"],
+                "handlers": ["syslog", "stdout"],
                 "level": logging.INFO,
             },
         },
