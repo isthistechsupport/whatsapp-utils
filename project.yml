@@ -16,11 +16,15 @@ packages:
       parameters: {}
       environment:
         VERIFICATION_TOKEN: "${VERIFICATION_TOKEN}"
+        PAPERTRAIL_TOKEN: "${PAPERTRAIL_TOKEN}"
         GRAPH_API_TOKEN: "${GRAPH_API_TOKEN}"
         OPENAI_API_KEY: "${OPENAI_API_KEY}"
         MS_SPEECH_REGION: "${MS_SPEECH_REGION}"
         MS_SPEECH_KEY: "${MS_SPEECH_KEY}"
-        LOG_DESTINATIONS: "[{\"papertrail\":{\"token\":\"${PAPERTRAIL_TOKEN}\"}}]"
+        MS_VISION_KEY: "${MS_VISION_KEY}"
+        MS_VISION_ENDPOINT: "${MS_VISION_ENDPOINT}"
+        SYSLOG_HOST: "${SYSLOG_HOST}"
+        SYSLOG_PORT: "${SYSLOG_PORT}"
       annotations: {}
       limits:
         timeout: 30000

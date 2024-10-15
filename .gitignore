@@ -1,13 +1,12 @@
 .nimbella
 .deployed
-__deployer__.zip
+*.zip
 __pycache__/
 node_modules
 package-lock.json
 .DS_Store
 .env
 .venv
-event.json
-test_file.ogg
-tester.py 
-*.mp3
+*.json
+dev_files/
+scratch.ipynb
