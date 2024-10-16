@@ -18,4 +18,4 @@ def init_logging():
     syslog.setFormatter(logging.Formatter("%(levelname)s %(name)s %(message)s"))
     logger = logging.getLogger()
     logger.addHandler(syslog)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)

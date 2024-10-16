@@ -2,9 +2,11 @@ import os
 import json
 import logging
 import utils.logging
+from io import BytesIO
 from time import sleep
-from utils.vision import transcribe_image
+from utils.image import convert_png_to_jpeg
 from utils.speech import transcribe_audio, read_text
+from utils.vision import transcribe_image, remove_background
 from utils.messaging import mark_as_read, send_text, send_media
 from utils.healthcheck import healthcheck_routing, EMPTY_200_RESPONSE
 
@@ -28,12 +30,12 @@ def process_text(message: dict, metadata: dict, ctx):
     text = message['text']['body']
     if text.startswith('/tts'):
         text = text[4:].strip()
-        audio_buffer = read_text(text)
+        audio_buffer, mime_type = read_text(text)
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with audio message")
         send_media(
             phone_number_id=metadata['phone_number_id'],
             sender=f'+{message["from"]}',
-            media_type='audio',
+            mime_type=mime_type,
             media_buffer=audio_buffer,
             reply_to_id=message['id']
         )
@@ -48,15 +50,40 @@ def process_text(message: dict, metadata: dict, ctx):
 
 
 def process_image(message: dict, metadata: dict, ctx):
-    for result in transcribe_image(image_id=message['image']['id'], ctx=ctx):
-        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with image transcription result")
-        send_text(
+    caption: str = message['image'].get('caption', '')
+    if 'bg' in caption:
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image background removal")
+        image_result, mime_type = remove_background(image_id=message['image']['id'], ctx=ctx)
+        if isinstance(image_result, str):
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with error message")
+            send_text(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                text=image_result,
+                reply_to_id=message['id']
+            )
+            return
+        if mime_type == 'image/png':
+            background_color_name = caption.split(' ')[-1].strip()
+            image_result, mime_type = convert_png_to_jpeg(image_result, background_color_name), 'image/jpeg'
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with image background removal result")
+        send_media(
             phone_number_id=metadata['phone_number_id'],
             sender=f'+{message["from"]}',
-            text=result,
+            mime_type=mime_type,
+            media_buffer=image_result,
             reply_to_id=message['id']
         )
-        sleep(0.25)
+    else:
+        for result in transcribe_image(image_id=message['image']['id'], ctx=ctx):
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with image transcription result")
+            send_text(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                text=result,
+                reply_to_id=message['id']
+            )
+            sleep(0.25)
 
 
 def process_unsupported(message: dict, metadata: dict, ctx):

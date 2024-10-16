@@ -49,12 +49,13 @@ def send_text(phone_number_id: str, sender: str, text: str, reply_to_id: str = N
     response.raise_for_status()
 
 
-def send_media(phone_number_id: str, sender: str, media_type: str, media_buffer: BytesIO, reply_to_id: str = None):
+def send_media(phone_number_id: str, sender: str, mime_type: str, media_buffer: BytesIO, reply_to_id: str = None):
     """
     Send a media message
     """
     url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
-    media_id = post_media_file(phone_number_id, media_buffer)
+    media_id = post_media_file(phone_number_id, media_buffer, mime_type)
+    media_type = mime_type.split('/')[0]
     payload = {
         "messaging_product": "whatsapp",
         "recipient_type": "individual",

@@ -15,8 +15,15 @@ def validate_image_mime_type(image_mime_type: str) -> bool:
     """
     Validate if the image mime type is supported by the Microsoft Vision API
     """
-    valid_mime_types = ['jpeg', 'png', 'tiff']
+    valid_mime_types = ['jpeg', 'png']
     return any(mime_type in image_mime_type for mime_type in valid_mime_types)
+
+
+def get_media_extension(mime_type: str) -> str:
+    """
+    Get the media extension from the mime type
+    """
+    return mime_type.split('/')[-1]
 
 
 def get_media_metadata(media_id: str) -> tuple[str, str, str, str]:
@@ -45,7 +52,7 @@ def get_media_file(file_url: str) -> BytesIO:
     return BytesIO(file_response.content)
 
 
-def post_media_file(phone_number_id: str, media_buffer: BytesIO) -> str:
+def post_media_file(phone_number_id: str, media_buffer: BytesIO, mime_type: str) -> str:
     """
     Post the media file to the Meta Graph API and get the posted media ID
     """
@@ -53,12 +60,12 @@ def post_media_file(phone_number_id: str, media_buffer: BytesIO) -> str:
     headers = {
         'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}',
     }
+    media_extension = get_media_extension(mime_type)
     files={
-        'file': ('speech.mp3', media_buffer, 'audio/mpeg'),
-        'type': (None, 'audio/mpeg'),
+        'file': (f'file.{media_extension}', media_buffer, mime_type),
+        'type': (None, mime_type),
         'messaging_product': (None, 'whatsapp')
     }
     response = requests.request("POST", url, headers=headers, files=files)
     response.raise_for_status()
     return response.json()['id']
-

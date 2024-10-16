@@ -42,14 +42,14 @@ def transcribe_audio(audio_id: str) -> list[str]:
             return [transcription]
 
 
-def read_text(text: str) -> BytesIO:
+def read_text(text: str) -> tuple[BytesIO, str]:
     """
     Convert a text to an audio file using the Microsoft Speech API
     """
     url = f"https://{os.getenv('MS_SPEECH_REGION')}.tts.speech.microsoft.com/cognitiveservices/v1"
     headers = {
         "Ocp-Apim-Subscription-Key": f"{os.getenv('MS_SPEECH_KEY')}",
-        "Content-Type": "application/ssml+xml",
+        "Content-Type": "application/ssml+xml; charset=utf-8",
         "X-Microsoft-OutputFormat": "audio-16khz-128kbitrate-mono-mp3",
         "User-Agent": "doslsfn:whatsapp_utils:v1.1"
     }
@@ -60,6 +60,6 @@ def read_text(text: str) -> BytesIO:
         </voice>
     </speak>
     """
-    response = requests.post(url, headers=headers, data=body)
+    response = requests.post(url, headers=headers, data=body.encode('utf-8'))
     response.raise_for_status()
-    return BytesIO(response.content)
+    return BytesIO(response.content), response.headers['Content-Type']
