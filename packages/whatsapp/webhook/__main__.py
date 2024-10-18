@@ -2,7 +2,6 @@ import os
 import json
 import logging
 import utils.logging
-from io import BytesIO
 from time import sleep
 #from utils.image import convert_png_to_jpeg
 from utils.speech import transcribe_audio, read_text
