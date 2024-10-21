@@ -1,5 +1,9 @@
+import logging
 from PIL import Image
 from io import BytesIO
+
+
+logger = logging.getLogger(__name__)
 
 
 def autocrop_image(image_buffer: BytesIO, border = 0):
@@ -98,4 +102,3 @@ def resize_dimensions(src_width, src_height, tgt_width=None, tgt_height=None):
             tgt_width = int((256 / src_height) * src_width)
     
     return tgt_width, tgt_height
-

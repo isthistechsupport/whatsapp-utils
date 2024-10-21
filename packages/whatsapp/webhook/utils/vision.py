@@ -41,7 +41,7 @@ def transcribe_image(image_id: str, ctx) -> list[str]:
         return [f"Lo siento, el formato de la imagen no es válido. Los formatos válidos son: jpeg y png. El formato de la imagen que enviaste es: `{file_mime_type}`"]
     if file_size > 25 * 1024 * 1024:
         return [f"Lo siento, el tamaño de la imagen es muy grande. El tamaño máximo permitido es de 25MB. El tamaño de la imagen que enviaste es: `{file_size} bytes, {file_size / (1024 * 1024)} MB`"]
-    with get_media_file(file_url) as image_file:
+    with get_media_file(file_url, media_id=image_id) as image_file:
         file_bytes = image_file.getvalue()
         hashed_file = hashlib.sha256(file_bytes).hexdigest()
         if hashed_file != file_hash:
@@ -80,7 +80,7 @@ def remove_background(image_id: str, ctx) -> tuple[BytesIO, str] | tuple[str, No
         return f"Lo siento, el formato de la imagen no es válido. Los formatos válidos son: jpeg, png y tiff. El formato de la imagen que enviaste es: `{file_mime_type}`", None
     if file_size > 25 * 1024 * 1024:
         return f"Lo siento, el tamaño de la imagen es muy grande. El tamaño máximo permitido es de 25MB. El tamaño de la imagen que enviaste es: `{file_size} bytes, {file_size / (1024 * 1024)} MB`", None
-    with get_media_file(file_url) as image_file:
+    with get_media_file(file_url, media_id=image_id) as image_file:
         file_bytes = image_file.getvalue()
         hashed_file = hashlib.sha256(file_bytes).hexdigest()
         if hashed_file != file_hash:

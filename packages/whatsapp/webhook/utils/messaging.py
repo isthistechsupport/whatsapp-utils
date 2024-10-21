@@ -1,8 +1,9 @@
 import os
 import json
 import requests
-from utils.media import post_media_file
 from io import BytesIO
+from utils.logging import log_to_redis
+from utils.media import post_media_file
 
 
 def mark_as_read(phone_number_id: str, message_id: str):
@@ -55,6 +56,7 @@ def send_media(phone_number_id: str, sender: str, mime_type: str, media_buffer: 
     """
     url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
     media_id = post_media_file(phone_number_id, media_buffer, mime_type)
+    log_to_redis(media_id, sender)
     media_type = mime_type.split('/')[0]
     payload = {
         "messaging_product": "whatsapp",

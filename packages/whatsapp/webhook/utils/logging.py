@@ -1,4 +1,6 @@
 import os
+import time
+import redis
 import socket
 import logging
 import logging.config
@@ -18,4 +20,16 @@ def init_logging():
     syslog.setFormatter(logging.Formatter("%(levelname)s %(name)s %(message)s"))
     logger = logging.getLogger()
     logger.addHandler(syslog)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
+
+
+def log_to_redis(media_id: str, from_number: str):
+    r = redis.Redis(
+        host=os.getenv('REDIS_HOST'),
+        port=os.getenv('REDIS_PORT'),
+        password=os.getenv('REDIS_PASSWORD'),
+        ssl=True
+    )
+    sender = from_number if from_number.startswith('+') else f'+{from_number}'
+    r.set(media_id, sender)
+    r.set(f'{media_id}-timestamp', int(time.time()))
