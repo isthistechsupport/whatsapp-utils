@@ -1,0 +1,25 @@
+name: CD to DO Functions
+run-name: ${{ github.actor }} is deploying to DO Functions
+on:
+  push:
+    branches:
+      - main
+jobs:
+  deploy:
+    name: deploy to dev
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - run: echo "The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "The workflow is now ready to deploy the code from the runner."
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - run: doctl serverless install
+      - run: doctl serverless connect ${{ secrets.DIGITALOCEAN_FUNCTIONS_NAMESPACE }}
+      - run: doctl serverless deploy . --remote-build
