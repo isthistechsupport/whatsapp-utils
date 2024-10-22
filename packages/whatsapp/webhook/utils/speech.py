@@ -2,7 +2,7 @@ import os
 import hashlib
 import requests
 from io import BytesIO
-from utils.media import validate_audio_mime_type, get_media_metadata, get_media_file
+from utils.media import validate_audio_mime_type, get_media_metadata, get_media_file_from_meta
 
 
 def convert_audio_to_text(audio_buffer: BytesIO, audio_mime_type: str) -> str:
@@ -30,7 +30,7 @@ def transcribe_audio(audio_id: str) -> list[str]:
         return [f"Lo siento, el formato del audio no es válido. Los formatos válidos son: flac, mp3, mp4, mpeg, mpga, m4a, ogg, wav y webm. El formato del audio que enviaste es: `{file_mime_type}`"]
     if file_size > 25 * 1024 * 1024:
         return [f"Lo siento, el tamaño del audio es muy grande. El tamaño máximo permitido es de 25MB. El tamaño del audio que enviaste es: `{file_size} bytes, {file_size / (1024 * 1024)} MB`"]
-    with get_media_file(file_url, media_id=audio_id) as audio_file:
+    with get_media_file_from_meta(file_url, media_id=audio_id) as audio_file:
         file_bytes = audio_file.getvalue()
         hashed_file = hashlib.sha256(file_bytes).hexdigest()
         if hashed_file != file_hash:

@@ -3,7 +3,7 @@ import json
 import requests
 from io import BytesIO
 from utils.logging import log_to_redis
-from utils.media import post_media_file
+from utils.media import post_media_file_to_meta
 
 
 def mark_as_read(phone_number_id: str, message_id: str):
@@ -55,7 +55,7 @@ def send_media(phone_number_id: str, sender: str, mime_type: str, media_buffer: 
     Send a media message
     """
     url = f"https://graph.facebook.com/v19.0/{phone_number_id}/messages"
-    media_id = post_media_file(phone_number_id, media_buffer, mime_type)
+    media_id = post_media_file_to_meta(phone_number_id, media_buffer, mime_type)
     log_to_redis(media_id, sender)
     media_type = mime_type.split('/')[0]
     payload = {

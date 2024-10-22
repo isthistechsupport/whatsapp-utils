@@ -70,7 +70,7 @@ def backup_media_file(media_id: str, media_buffer: BytesIO, mime_type: str) -> s
         logger.error(f"Error backing up media file: {e}", exc_info=True, stack_info=True)
 
 
-def get_media_file(file_url: str, media_id: str) -> BytesIO:
+def get_media_file_from_meta(file_url: str, media_id: str) -> BytesIO:
     """
     Get the media file from the Meta Graph API
     """
@@ -86,7 +86,7 @@ def get_media_file(file_url: str, media_id: str) -> BytesIO:
     return BytesIO(file_response.content)
 
 
-def post_media_file(phone_number_id: str, media_buffer: BytesIO, mime_type: str) -> str:
+def post_media_file_to_meta(phone_number_id: str, media_buffer: BytesIO, mime_type: str) -> str:
     """
     Post the media file to the Meta Graph API and get the posted media ID
     """
@@ -108,3 +108,27 @@ def post_media_file(phone_number_id: str, media_buffer: BytesIO, mime_type: str)
     except Exception as e:
         logger.error(f"Error backing up media file: {e}", exc_info=True, stack_info=True)
     return response.json()['id']
+
+
+def get_media_file_from_spaces(media_id: str, delete: bool = False) -> BytesIO:
+    """
+    Get the media file from DigitalOcean Spaces
+    """
+    session = boto3.session.Session()
+    client = session.client(
+        's3',
+        region_name='nyc3',
+        endpoint_url='https://nyc3.digitaloceanspaces.com',
+        aws_access_key_id=os.getenv('SPACES_KEY'),
+        aws_secret_access_key=os.getenv('SPACES_SECRET')
+    )
+    response = client.get_object(
+        Bucket=os.getenv('SPACES_NAME'),
+        Key=media_id
+    )
+    if delete:
+        client.delete_object(
+            Bucket=os.getenv('SPACES_NAME'),
+            Key=media_id
+        )
+    return BytesIO(response['Body'].read())

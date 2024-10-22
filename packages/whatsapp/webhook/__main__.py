@@ -5,7 +5,7 @@ from time import sleep
 from utils.image import convert_png_to_jpeg
 from utils.logging import log_to_redis, init_logging
 from utils.speech import transcribe_audio, read_text
-from utils.vision import transcribe_image, remove_background
+from utils.vision import transcribe_image, alter_image
 from utils.messaging import mark_as_read, send_text, send_media
 from utils.healthcheck import healthcheck_routing, EMPTY_200_RESPONSE
 
@@ -54,9 +54,11 @@ def process_text(message: dict, metadata: dict, ctx):
 def process_image(message: dict, metadata: dict, ctx):
     log_to_redis(key=message['image']['id'], value=message['from'])
     caption: str = message['image'].get('caption', '')
-    if 'bg' in caption:
-        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image background removal request from {message['from']}")
-        image_result, mime_type = remove_background(image_id=message['image']['id'], ctx=ctx)
+    if caption.startswith('/'):
+        op = caption.split(' ')[0][1:]
+        op_name = 'image background removal' if op == 'bg' else 'image to asciiart conversion'
+        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing {op_name} request from {message['from']}")
+        image_result, mime_type = alter_image(op=op, image_id=message['image']['id'], ctx=ctx)
         if isinstance(image_result, str):
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with error message")
             send_text(
@@ -69,7 +71,7 @@ def process_image(message: dict, metadata: dict, ctx):
         if mime_type == 'image/png':
             background_color_name = caption.split(' ')[-1].strip()
             image_result, mime_type = convert_png_to_jpeg(image_result, background_color_name), 'image/jpeg'
-        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with image background removal result")
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with {op_name} result")
         send_media(
             phone_number_id=metadata['phone_number_id'],
             sender=f'+{message["from"]}',

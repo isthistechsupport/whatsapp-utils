@@ -81,7 +81,7 @@ def resize_dimensions(src_width, src_height, tgt_width=None, tgt_height=None):
     If both dimensions are provided, the target width and height are
     returned unchanged. If only one of the target width or height is
     provided, the other is calculated based on the aspect ratio of the
-    source image. If neither is provided, the larger dimension is resized
+    source image. If neither is provided, the shorter dimension is resized
     to 256 and the other is calculated based on the aspect ratio of the
     source image.
     """
@@ -94,7 +94,7 @@ def resize_dimensions(src_width, src_height, tgt_width=None, tgt_height=None):
         aspect_ratio = src_width / src_height
         tgt_width = int(tgt_height * aspect_ratio)
     else:
-        if src_width > src_height:
+        if src_width < src_height:
             tgt_width = 256
             tgt_height = int((256 / src_width) * src_height)
         else:
@@ -102,3 +102,9 @@ def resize_dimensions(src_width, src_height, tgt_width=None, tgt_height=None):
             tgt_width = int((256 / src_height) * src_width)
     
     return tgt_width, tgt_height
+
+
+def resize_image(image_buffer: BytesIO, tgt_width=None, tgt_height=None) -> tuple[int, int]:
+    image = Image.open(image_buffer)
+    src_width, src_height = image.size
+    return resize_dimensions(src_width, src_height, tgt_width, tgt_height)
