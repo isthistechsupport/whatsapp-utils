@@ -110,7 +110,7 @@ def post_media_file_to_meta(phone_number_id: str, media_buffer: BytesIO, mime_ty
     return response.json()['id']
 
 
-def get_media_file_from_spaces(media_id: str, delete: bool = False) -> BytesIO:
+def get_media_file_from_spaces(file_key: str, delete: bool = False) -> BytesIO:
     """
     Get the media file from DigitalOcean Spaces
     """
@@ -122,13 +122,18 @@ def get_media_file_from_spaces(media_id: str, delete: bool = False) -> BytesIO:
         aws_access_key_id=os.getenv('SPACES_KEY'),
         aws_secret_access_key=os.getenv('SPACES_SECRET')
     )
+    logger.debug(f"Getting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
     response = client.get_object(
         Bucket=os.getenv('SPACES_NAME'),
-        Key=media_id
+        Key=file_key
     )
+    logger.debug(f"Got media file {file_key=} from {os.getenv('SPACES_NAME')=} with {response['ContentLength']} bytes")
     if delete:
+        logger.debug(f"Deleting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
         client.delete_object(
             Bucket=os.getenv('SPACES_NAME'),
-            Key=media_id
+            Key=file_key
         )
+        logger.debug(f"Deleted media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    logger.debug(f"Returning media file {file_key=} from {os.getenv('SPACES_NAME')=}")
     return BytesIO(response['Body'].read())

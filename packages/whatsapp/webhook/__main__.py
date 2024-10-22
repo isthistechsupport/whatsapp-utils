@@ -2,10 +2,9 @@ import os
 import json
 import logging
 from time import sleep
-from utils.image import convert_png_to_jpeg
-from utils.logging import log_to_redis, init_logging
+from utils.vision import alter_image, ImageProcessingError
 from utils.speech import transcribe_audio, read_text
-from utils.vision import transcribe_image, alter_image
+from utils.logging import log_to_redis, init_logging
 from utils.messaging import mark_as_read, send_text, send_media
 from utils.healthcheck import healthcheck_routing, EMPTY_200_RESPONSE
 
@@ -54,24 +53,20 @@ def process_text(message: dict, metadata: dict, ctx):
 def process_image(message: dict, metadata: dict, ctx):
     log_to_redis(key=message['image']['id'], value=message['from'])
     caption: str = message['image'].get('caption', '')
-    if caption.startswith('/'):
-        op = caption.split(' ')[0][1:]
-        op_name = 'image background removal' if op == 'bg' else 'image to asciiart conversion'
-        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing {op_name} request from {message['from']}")
-        image_result, mime_type = alter_image(op=op, image_id=message['image']['id'], ctx=ctx)
-        if isinstance(image_result, str):
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with error message")
-            send_text(
-                phone_number_id=metadata['phone_number_id'],
-                sender=f'+{message["from"]}',
-                text=image_result,
-                reply_to_id=message['id']
-            )
-            return
-        if mime_type == 'image/png':
-            background_color_name = caption.split(' ')[-1].strip()
-            image_result, mime_type = convert_png_to_jpeg(image_result, background_color_name), 'image/jpeg'
-        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with {op_name} result")
+    logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image request from {message['from']}")
+    try:
+        result = alter_image(caption=caption, image_id=message['image']['id'], ctx=ctx)
+    except ImageProcessingError as e:
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with error message")
+        send_text(
+            phone_number_id=metadata['phone_number_id'],
+            sender=f'+{message["from"]}',
+            text=str(e),
+            reply_to_id=message['id']
+        )
+        return
+    if isinstance(result, tuple):
+        image_result, mime_type = result
         send_media(
             phone_number_id=metadata['phone_number_id'],
             sender=f'+{message["from"]}',
@@ -80,13 +75,11 @@ def process_image(message: dict, metadata: dict, ctx):
             reply_to_id=message['id']
         )
     else:
-        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image transcription request from {message['from']}")
-        for result in transcribe_image(image_id=message['image']['id'], ctx=ctx):
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with image transcription result")
+        for text in result:
             send_text(
                 phone_number_id=metadata['phone_number_id'],
                 sender=f'+{message["from"]}',
-                text=result,
+                text=text,
                 reply_to_id=message['id']
             )
             sleep(0.25)

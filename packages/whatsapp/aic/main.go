@@ -1,11 +1,11 @@
 package main
 
+
 import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
-
+	//"reflect"
 	"github.com/TheZoraiz/ascii-image-converter/aic_package"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,7 +16,9 @@ import (
 
 func Main(args map[string]interface{}) map[string]interface{} {
 	msg := make(map[string]interface{})
-
+	//for key, value := range args {
+	//	fmt.Printf("Key: %s, Value: %v (Type: %s)\n", key, value, reflect.TypeOf(value))
+	//}
 	outputImageSuffix := "-ascii-art.png"
 	file_key, ok := args["media_id"].(string)
 	if !ok {
@@ -24,7 +26,7 @@ func Main(args map[string]interface{}) map[string]interface{} {
 		msg["body"] = fmt.Sprintln("Error getting media_id")
 		return msg
 	}
-	fmt.Println("Processing image with media_id: ", file_key)
+	fmt.Println("Processing image with media_id:", file_key)
 	key := os.Getenv("SPACES_KEY")
 	secret := os.Getenv("SPACES_SECRET")
 
@@ -66,28 +68,18 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	defer image.Body.Close()
 
 	flags := aic_package.DefaultFlags()
-	widthStr, wok := args["width"].(string)
+	widthFlt64, wok := args["width"].(float64)
 	if !wok {
 		fmt.Println("No width provided")
 	}
-	width, err := strconv.Atoi(widthStr)
-	if err != nil {
-		fmt.Println("Error converting width to int: ", err)
-		msg["body"] = fmt.Sprintln("Error converting width to int: ", err)
-		return msg
-	}
-	fmt.Println("Width: ", width)
-	heightStr, hok := args["height"].(string)
+	width := int(widthFlt64) * 2 // Multiply by 2 to maintain aspect ratio
+	fmt.Println("Width:", width)
+	heightFlt64, hok := args["height"].(float64)
 	if !hok {
 		fmt.Println("No height provided")
 	}
-	height, err := strconv.Atoi(heightStr)
-	if err != nil {
-		fmt.Println("Error converting height to int: ", err)
-		msg["body"] = fmt.Sprintln("Error converting height to int: ", err)
-		return msg
-	}
-	fmt.Println("Height: ", height)
+	height := int(heightFlt64)
+	fmt.Println("Height:", height)
 	if wok && hok {
 		flags.Dimensions = []int{width, height}
 	} else if wok {
@@ -96,14 +88,14 @@ func Main(args map[string]interface{}) map[string]interface{} {
 		flags.Height = height
 	}
 	flags.SaveImagePath = "/tmp/"
-	fmt.Println("Converting image: ", file_key+".jpeg")
+	fmt.Println("Converting image:", file_key+".jpeg")
 	_, err = aic_package.Convert("/tmp/"+file_key+".jpeg", flags)
 	if err != nil {
 		fmt.Println("Error converting image: ", err)
 		msg["body"] = fmt.Sprintln("Error converting image: ", err)
 		return msg
 	}
-	fmt.Println("Converted image: ", file_key+".jpeg", "to: ", "/tmp/"+file_key+outputImageSuffix)
+	fmt.Println("Converted image:", file_key+".jpeg", "to:", "/tmp/"+file_key+outputImageSuffix)
 	file, err = os.Open("/tmp/" + file_key + outputImageSuffix)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)

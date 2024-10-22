@@ -6,6 +6,12 @@ from io import BytesIO
 logger = logging.getLogger(__name__)
 
 
+class CaptionParsingError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+
 def autocrop_image(image_buffer: BytesIO, border = 0):
     image = Image.open(image_buffer)
 
@@ -53,26 +59,72 @@ def convert_color_name_to_rgb(color_name: str):
     return colors.get(color_name, (255, 255, 255))
 
 
-def convert_png_to_jpeg(image_buffer: BytesIO, background_color_name: str, background_color_rgb: tuple[int, int, int] = (255, 255, 255)):
-    if background_color_name is None:
-        background_color = background_color_rgb
-    else:
-        background_color = convert_color_name_to_rgb(background_color_name)
+def convert_png_to_jpeg(image_buffer: BytesIO, background_color_name: str, background_color_rgb: tuple[int, int, int] = (255, 255, 255), ctx=None) -> BytesIO:
     image = Image.open(image_buffer)
     if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
+        if background_color_name is None:
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} No background color provided, using white as the default background color")
+            background_color = background_color_rgb
+        else:
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected background color: {background_color_name}")
+            background_color = convert_color_name_to_rgb(background_color_name)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converted background color to RGB: {background_color}")
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected image with transparency")
         # Autocrop the image
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Autocropping the canvas to exclude transparent borders around the image")
         image = autocrop_image(image_buffer, border=10)
         # Create a new image with the specified background color
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Creating a new canvas with the background color: {background_color}")
         background = Image.new("RGB", image.size, background_color)
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Pasting the image onto the new canvas")
         background.paste(image, mask=image.split()[3])  # 3 is the alpha channel
         image = background
     else:
-        image = image.convert("RGB")
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected image without transparency")
+        image_mode = image.mode
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Image mode detected: {image_mode}")
+        if image_mode == 'P' or image_mode == 'L' or image_mode == '1' or image_mode == 'CMYK' or image_mode == 'YCbCr' or image_mode == 'LAB' or image_mode == 'HSV' or image_mode == 'I' or image_mode == 'F':
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converting the image to RGB color space")
+            image = image.convert("RGB")
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Image converted")
     
     jpeg_buffer = BytesIO()
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Saving the image as a JPEG")
     image.save(jpeg_buffer, "JPEG")
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Rewinding the JPEG image buffer")
     jpeg_buffer.seek(0)
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning the JPEG image buffer")
     return jpeg_buffer
+
+
+def parse_image_caption(caption: str) -> tuple[str, str, str | None] | tuple[str, str, bool, str | None, int | None, int | None]:
+    """
+    Parse the caption of an image message
+    """
+    caption = caption.strip()
+    if caption.startswith('/'):
+        parts = caption.split()
+        op = parts[0][1:]
+        params = {}
+        
+        for part in parts[1:]:
+            if '=' in part:
+                key, value = part.split('=')
+                params[key] = value
+            else:
+                params[part] = True
+        
+        if op == 'bg':
+            background_color_name = params.get('bgcolor')
+            return 'bg', 'background removal', background_color_name
+        elif op == 'i2a':
+            background = bool(params.get('bg', False))
+            background_color_name = str(params.get('bgcolor'))
+            width = int(params.get('w'))
+            height = int(params.get('h'))
+            return f'i2a {'bg' if background else ''}'.strip(), 'image to asciiart', background_color_name, width, height
+        raise ValueError(f"Lo siento, la operación que intentas realizar no es válida. Las operaciones válidas son: bg (remover fondo de imagen) e i2a (convertir imagen a arte ASCII). La operación que intentaste realizar es: `{op}`")
+    return 'i2t', 'image transcription', None
 
 
 def resize_dimensions(src_width, src_height, tgt_width=None, tgt_height=None):
@@ -95,11 +147,11 @@ def resize_dimensions(src_width, src_height, tgt_width=None, tgt_height=None):
         tgt_width = int(tgt_height * aspect_ratio)
     else:
         if src_width < src_height:
-            tgt_width = 256
-            tgt_height = int((256 / src_width) * src_height)
+            tgt_width = 128
+            tgt_height = int((128 / src_width) * src_height)
         else:
-            tgt_height = 256
-            tgt_width = int((256 / src_height) * src_width)
+            tgt_height = 128
+            tgt_width = int((128 / src_height) * src_width)
     
     return tgt_width, tgt_height
 

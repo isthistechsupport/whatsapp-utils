@@ -1,13 +1,20 @@
 import os
+import json
 import logging
 import hashlib
 import requests
 from io import BytesIO
-from utils.image import resize_image
+from utils.image import resize_image, parse_image_caption, convert_png_to_jpeg, CaptionParsingError
 from utils.media import validate_image_mime_type, get_media_metadata, get_media_file_from_meta, get_media_file_from_spaces
 
 
 logger = logging.getLogger(__name__)
+
+
+class ImageProcessingError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
 
 
 def convert_image_to_text(image_buffer: BytesIO, image_mime_type: str, ctx) -> str:
@@ -82,6 +89,7 @@ def image_to_asciiart(image_id: str, image_buffer: BytesIO, ctx) -> str:
         'width': width,
         'height': height,
     }
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Sending payload {json.dumps(payload)} to ASCII Art API")
     response = requests.get(
         'https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-e01604ac-526b-43b6-9ecf-31de678fcc44/whatsapp/aic',
         headers=headers,
@@ -92,26 +100,47 @@ def image_to_asciiart(image_id: str, image_buffer: BytesIO, ctx) -> str:
     return response.text
 
 
-def alter_image(op: str, image_id: str, ctx) -> tuple[BytesIO, str] | tuple[str, None]:
+def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[str]:
     """
-    Get an image file from the Meta Graph API using the media ID, run an operation on it, and return the modified image
+    Get an image file from the Meta Graph API using the media ID, run an operation on it, and return the result
     """
+    try:
+        parsed_caption = parse_image_caption(caption)
+    except CaptionParsingError as e:
+        raise ImageProcessingError(str(e))
+    op = parsed_caption[0]
+    op_name = parsed_caption[1]
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received {op_name} request on image {image_id}")
     file_url, file_hash, file_mime_type, file_size = get_media_metadata(image_id)
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Retrieved metadata of image {image_id}: {file_url}, {file_hash}, {file_mime_type}, {file_size}")
     if not validate_image_mime_type(file_mime_type):
-        return f"Lo siento, el formato de la imagen no es válido. Los formatos válidos son: jpeg, png y tiff. El formato de la imagen que enviaste es: `{file_mime_type}`", None
+        raise ImageProcessingError(f"Lo siento, el formato de la imagen no es válido. Los formatos válidos son: jpeg, png y tiff. El formato de la imagen que enviaste es: `{file_mime_type}`")
     if file_size > 25 * 1024 * 1024:
-        return f"Lo siento, el tamaño de la imagen es muy grande. El tamaño máximo permitido es de 25MB. El tamaño de la imagen que enviaste es: `{file_size} bytes, {file_size / (1024 * 1024)} MB`", None
+        raise ImageProcessingError(f"Lo siento, el tamaño de la imagen es muy grande. El tamaño máximo permitido es de 25MB. El tamaño de la imagen que enviaste es: `{file_size} bytes, {file_size / (1024 * 1024)} MB`")
     with get_media_file_from_meta(file_url, media_id=image_id) as image_file:
         file_bytes = image_file.getvalue()
         hashed_file = hashlib.sha256(file_bytes).hexdigest()
         if hashed_file != file_hash:
-            return f"Lo siento, la imagen que enviaste está corrupta. Por favor, intenta enviarla de nuevo. `{hashed_file} != {file_hash}`", None
-        if op == 'bg':
-            return remove_image_background(image_file, file_mime_type, ctx)
-        elif op == 'i2a':
+            raise ImageProcessingError(f"Lo siento, la imagen que enviaste está corrupta. Por favor, intenta enviarla de nuevo. `{hashed_file} != {file_hash}`")
+        if 'bg' in op:
+            image_file, file_mime_type = remove_image_background(image_file, file_mime_type, ctx)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Removed background from image {image_id}")
+        if 'i2a' in op:
             spaces_key = image_to_asciiart(image_id, image_file, ctx)
-            return get_media_file_from_spaces(spaces_key), 'image/png'
-        else:
-            return f"Lo siento, la operación que intentas realizar no es válida. Las operaciones válidas son: bg (remover fondo de imagen) e i2a (convertir imagen a arte ASCII). La operación que intentaste realizar es: `{op}`", None
-
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received key {spaces_key} from ASCII Art API")
+            image_file, file_mime_type = get_media_file_from_spaces(spaces_key), 'image/png'
+        if 'i2t' in op:
+            transcription = convert_image_to_text(image_file, file_mime_type, ctx)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning {op_name} result")
+            if len(transcription) > 4000:
+                return [f"```{transcription[i:i+4000]}```" for i in range(0, len(transcription), 4000)]
+            else:
+                return [f"```{transcription}```"]
+        if file_mime_type == 'image/png':
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converting PNG to JPEG")
+            background_color_name = caption.split(' ')[-1].strip() if 'bg' in caption else None
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected background color: {background_color_name}")
+            image_result, file_mime_type = convert_png_to_jpeg(image_result, background_color_name, ctx=ctx), 'image/jpeg'
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converted PNG to JPEG")
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning {op_name} result")
+        return image_file, file_mime_type
