@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 def process_audio(message: dict, metadata: dict, ctx):
+    logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing audio transcription request from {message['from']}")
+    log_to_redis(key=message['audio']['id'], value=message['from'])
     for result in transcribe_audio(audio_id=message['audio']['id']):
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with audio transcription result")
         send_text(
@@ -28,6 +30,7 @@ def process_audio(message: dict, metadata: dict, ctx):
 def process_text(message: dict, metadata: dict, ctx):
     text = message['text']['body']
     if text.startswith('/tts'):
+        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing text-to-speech request from {message['from']}")
         text = text[4:].strip()
         audio_buffer, mime_type = read_text(text)
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with audio message")
@@ -49,10 +52,10 @@ def process_text(message: dict, metadata: dict, ctx):
 
 
 def process_image(message: dict, metadata: dict, ctx):
-    log_to_redis(media_id=message['image']['id'], from_number=message['from'])
+    log_to_redis(key=message['image']['id'], value=message['from'])
     caption: str = message['image'].get('caption', '')
     if 'bg' in caption:
-        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image background removal")
+        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image background removal request from {message['from']}")
         image_result, mime_type = remove_background(image_id=message['image']['id'], ctx=ctx)
         if isinstance(image_result, str):
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with error message")
@@ -75,6 +78,7 @@ def process_image(message: dict, metadata: dict, ctx):
             reply_to_id=message['id']
         )
     else:
+        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image transcription request from {message['from']}")
         for result in transcribe_image(image_id=message['image']['id'], ctx=ctx):
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with image transcription result")
             send_text(
@@ -110,6 +114,7 @@ def process_change(change: dict, ctx: dict):
     metadata = value['metadata']
     for message in messages:
         mark_as_read(phone_number_id=metadata['phone_number_id'], message_id=message['id'])
+        log_to_redis(key=ctx.activation_id, value=message['from'])
         try:
             if message['type'] == 'audio':
                 logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing audio message: {json.dumps(message)}")
