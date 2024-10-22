@@ -6,6 +6,7 @@ from io import BytesIO
 
 
 logger = logging.getLogger(__name__)
+SPACES_ENDPOINT = 'https://nyc3.digitaloceanspaces.com'
 
 
 def validate_audio_mime_type(audio_mime_type: str) -> bool:
@@ -45,16 +46,45 @@ def get_media_metadata(media_id: str) -> tuple[str, str, str, str]:
     return response_json['url'], response_json['sha256'], response_json['mime_type'], response_json['file_size']
 
 
-def backup_media_file(media_id: str, media_buffer: BytesIO, mime_type: str) -> str:
+def get_media_file_from_spaces(file_key: str, delete: bool = False) -> BytesIO:
     """
-    Backup the media file to DigitalOcean Spaces
+    Get the media file from DigitalOcean Spaces
+    """
+    session = boto3.session.Session()
+    client = session.client(
+        's3',
+        region_name='nyc3',
+        endpoint_url=SPACES_ENDPOINT,
+        aws_access_key_id=os.getenv('SPACES_KEY'),
+        aws_secret_access_key=os.getenv('SPACES_SECRET')
+    )
+    logger.debug(f"Getting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    response = client.get_object(
+        Bucket=os.getenv('SPACES_NAME'),
+        Key=file_key
+    )
+    logger.debug(f"Got media file {file_key=} from {os.getenv('SPACES_NAME')=} with {response['ContentLength']} bytes")
+    if delete:
+        logger.debug(f"Deleting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+        client.delete_object(
+            Bucket=os.getenv('SPACES_NAME'),
+            Key=file_key
+        )
+        logger.debug(f"Deleted media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    logger.debug(f"Returning media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    return BytesIO(response['Body'].read())
+
+
+def post_media_file_to_spaces(media_id: str, media_buffer: BytesIO, mime_type: str) -> str:
+    """
+    Upload the media file to DigitalOcean Spaces
     """
     try:
         session = boto3.session.Session()
         client = session.client(
             's3',
             region_name='nyc3',
-            endpoint_url='https://nyc3.digitaloceanspaces.com',
+            endpoint_url=SPACES_ENDPOINT,
             aws_access_key_id=os.getenv('SPACES_KEY'),
             aws_secret_access_key=os.getenv('SPACES_SECRET')
         )
@@ -70,6 +100,26 @@ def backup_media_file(media_id: str, media_buffer: BytesIO, mime_type: str) -> s
         logger.error(f"Error backing up media file: {e}", exc_info=True, stack_info=True)
 
 
+def delete_media_file_from_spaces(file_key: str) -> None:
+    """
+    Delete the media file from DigitalOcean Spaces
+    """
+    session = boto3.session.Session()
+    client = session.client(
+        's3',
+        region_name='nyc3',
+        endpoint_url=SPACES_ENDPOINT,
+        aws_access_key_id=os.getenv('SPACES_KEY'),
+        aws_secret_access_key=os.getenv('SPACES_SECRET')
+    )
+    logger.debug(f"Deleting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    client.delete_object(
+        Bucket=os.getenv('SPACES_NAME'),
+        Key=file_key
+    )
+    logger.debug(f"Deleted media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+
+
 def get_media_file_from_meta(file_url: str, media_id: str) -> BytesIO:
     """
     Get the media file from the Meta Graph API
@@ -80,7 +130,7 @@ def get_media_file_from_meta(file_url: str, media_id: str) -> BytesIO:
     file_response = requests.get(file_url, headers=headers)
     file_response.raise_for_status()
     try:
-        backup_media_file(media_id, BytesIO(file_response.content), file_response.headers['Content-Type'])
+        post_media_file_to_spaces(media_id, BytesIO(file_response.content), file_response.headers['Content-Type'])
     except Exception as e:
         logger.error(f"Error backing up media file: {e}", exc_info=True, stack_info=True)
     return BytesIO(file_response.content)
@@ -104,36 +154,7 @@ def post_media_file_to_meta(phone_number_id: str, media_buffer: BytesIO, mime_ty
     response.raise_for_status()
     try:
         assert media_buffer.seek(0) == 0, "Media buffer couldn't be rewinded"
-        backup_media_file(response.json()['id'], media_buffer, mime_type)
+        post_media_file_to_spaces(response.json()['id'], media_buffer, mime_type)
     except Exception as e:
         logger.error(f"Error backing up media file: {e}", exc_info=True, stack_info=True)
     return response.json()['id']
-
-
-def get_media_file_from_spaces(file_key: str, delete: bool = False) -> BytesIO:
-    """
-    Get the media file from DigitalOcean Spaces
-    """
-    session = boto3.session.Session()
-    client = session.client(
-        's3',
-        region_name='nyc3',
-        endpoint_url='https://nyc3.digitaloceanspaces.com',
-        aws_access_key_id=os.getenv('SPACES_KEY'),
-        aws_secret_access_key=os.getenv('SPACES_SECRET')
-    )
-    logger.debug(f"Getting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
-    response = client.get_object(
-        Bucket=os.getenv('SPACES_NAME'),
-        Key=file_key
-    )
-    logger.debug(f"Got media file {file_key=} from {os.getenv('SPACES_NAME')=} with {response['ContentLength']} bytes")
-    if delete:
-        logger.debug(f"Deleting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
-        client.delete_object(
-            Bucket=os.getenv('SPACES_NAME'),
-            Key=file_key
-        )
-        logger.debug(f"Deleted media file {file_key=} from {os.getenv('SPACES_NAME')=}")
-    logger.debug(f"Returning media file {file_key=} from {os.getenv('SPACES_NAME')=}")
-    return BytesIO(response['Body'].read())

@@ -59,7 +59,8 @@ def convert_color_name_to_rgb(color_name: str):
     return colors.get(color_name, (255, 255, 255))
 
 
-def convert_png_to_jpeg(image_buffer: BytesIO, background_color_name: str, background_color_rgb: tuple[int, int, int] = (255, 255, 255), ctx=None) -> BytesIO:
+def convert_png_to_jpeg(image_buffer: BytesIO, background_color_name: str, background_color_rgb: tuple[int, int, int] = (255, 255, 255), ctx=None) -> tuple[BytesIO, str]:
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Comverting PNG image to JPEG")
     image = Image.open(image_buffer)
     if image.mode in ('RGBA', 'LA') or (image.mode == 'P' and 'transparency' in image.info):
         if background_color_name is None:
@@ -94,7 +95,7 @@ def convert_png_to_jpeg(image_buffer: BytesIO, background_color_name: str, backg
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Rewinding the JPEG image buffer")
     jpeg_buffer.seek(0)
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning the JPEG image buffer")
-    return jpeg_buffer
+    return jpeg_buffer, 'image/jpeg'
 
 
 def read_image_to_asciiart_params(params: dict) -> tuple[bool, str | None, int | None, int | None]:

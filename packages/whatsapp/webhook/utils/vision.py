@@ -5,7 +5,7 @@ import hashlib
 import requests
 from io import BytesIO
 from utils.image import resize_image, parse_image_caption, convert_png_to_jpeg, CaptionParsingError
-from utils.media import validate_image_mime_type, get_media_metadata, get_media_file_from_meta, get_media_file_from_spaces
+from utils.media import validate_image_mime_type, get_media_metadata, get_media_file_from_meta, get_media_file_from_spaces, post_media_file_to_spaces, delete_media_file_from_spaces
 
 
 logger = logging.getLogger(__name__)
@@ -133,15 +133,19 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
         if 'bg' in op:
             image_file, file_mime_type = remove_image_background(image_file, file_mime_type, ctx)
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Removed background from image {image_id}")
+            background_color_name = parsed_caption[2]
+            image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx)
+        if 'i2a' in op and 'bg' in op:
+            post_media_file_to_spaces(f'{image_id}-bgrm', image_file, file_mime_type)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Posted image with removed background to DigitalOcean Spaces")
+            image_id = f'{image_id}-bgrm'
         if 'i2a' in op:
             spaces_key = image_to_asciiart(image_id, image_file, parsed_caption[3], parsed_caption[4], ctx)
+            if image_id.endswith('-bgrm'):
+                delete_media_file_from_spaces(f'{image_id}-bgrm')
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received key {spaces_key} from ASCII Art API")
-            image_file, file_mime_type = get_media_file_from_spaces(spaces_key), 'image/png'
-        if file_mime_type == 'image/png':
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converting PNG to JPEG")
+            image_file, file_mime_type = get_media_file_from_spaces(spaces_key, delete=True), 'image/png'
             background_color_name = parsed_caption[2]
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected background color: {background_color_name}")
-            image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx), 'image/jpeg'
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converted PNG to JPEG")
+            image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx)
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning {op_name} result")
         return image_file, file_mime_type
