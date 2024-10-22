@@ -6,6 +6,7 @@ node_modules
 package-lock.json
 .DS_Store
 .env
+.env.keys
 .venv
 *.json
 dev_files/
