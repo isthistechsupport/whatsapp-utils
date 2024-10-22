@@ -20,13 +20,13 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	//	fmt.Printf("Key: %s, Value: %v (Type: %s)\n", key, value, reflect.TypeOf(value))
 	//}
 	outputImageSuffix := "-ascii-art.png"
-	file_key, ok := args["media_id"].(string)
+	fileKey, ok := args["media_id"].(string)
 	if !ok {
 		fmt.Println("Error getting media_id")
 		msg["body"] = fmt.Sprintln("Error getting media_id")
 		return msg
 	}
-	fmt.Println("Processing image with media_id:", file_key)
+	fmt.Println("Processing image with media_id:", fileKey)
 	key := os.Getenv("SPACES_KEY")
 	secret := os.Getenv("SPACES_SECRET")
 
@@ -45,14 +45,14 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	s3Client := s3.New(newSession)
 	image, err := s3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(os.Getenv("SPACES_NAME")),
-		Key:    aws.String(file_key + ".jpeg"),
+		Key:    aws.String(fileKey + ".jpeg"),
 	})
 	if err != nil {
 		fmt.Println("Error getting object: ", err)
 		msg["body"] = fmt.Sprintln("Error getting object: ", err)
 		return msg
 	}
-	file, err := os.Create("/tmp/" + file_key + ".jpeg")
+	file, err := os.Create("/tmp/" + fileKey + ".jpeg")
 	if err != nil {
 		fmt.Println("Error creating file: ", err)
 		msg["body"] = fmt.Sprintln("Error creating file: ", err)
@@ -68,35 +68,35 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	defer image.Body.Close()
 
 	flags := aic_package.DefaultFlags()
-	widthFlt64, wok := args["width"].(float64)
-	if !wok {
+	widthFlt64, wOk := args["width"].(float64)
+	if !wOk {
 		fmt.Println("No width provided")
 	}
 	width := int(widthFlt64) * 2 // Multiply by 2 to maintain aspect ratio
 	fmt.Println("Width:", width)
-	heightFlt64, hok := args["height"].(float64)
-	if !hok {
+	heightFlt64, hOk := args["height"].(float64)
+	if !hOk {
 		fmt.Println("No height provided")
 	}
 	height := int(heightFlt64)
 	fmt.Println("Height:", height)
-	if wok && hok {
+	if wOk && hOk {
 		flags.Dimensions = []int{width, height}
-	} else if wok {
+	} else if wOk {
 		flags.Width = width
-	} else if hok {
+	} else if hOk {
 		flags.Height = height
 	}
 	flags.SaveImagePath = "/tmp/"
-	fmt.Println("Converting image:", file_key+".jpeg")
-	_, err = aic_package.Convert("/tmp/"+file_key+".jpeg", flags)
+	fmt.Println("Converting image:", fileKey+".jpeg")
+	_, err = aic_package.Convert("/tmp/"+fileKey+".jpeg", flags)
 	if err != nil {
 		fmt.Println("Error converting image: ", err)
 		msg["body"] = fmt.Sprintln("Error converting image: ", err)
 		return msg
 	}
-	fmt.Println("Converted image:", file_key+".jpeg", "to:", "/tmp/"+file_key+outputImageSuffix)
-	file, err = os.Open("/tmp/" + file_key + outputImageSuffix)
+	fmt.Println("Converted image:", fileKey+".jpeg", "to:", "/tmp/"+fileKey+outputImageSuffix)
+	file, err = os.Open("/tmp/" + fileKey + outputImageSuffix)
 	if err != nil {
 		fmt.Println("Error opening file: ", err)
 		msg["body"] = fmt.Sprintln("Error opening file: ", err)
@@ -105,7 +105,7 @@ func Main(args map[string]interface{}) map[string]interface{} {
 
 	_, err = s3Client.PutObject(&s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("SPACES_NAME")),
-		Key:    aws.String(file_key + outputImageSuffix),
+		Key:    aws.String(fileKey + outputImageSuffix),
 		Body:   file,
 	})
 	defer file.Close()
@@ -114,6 +114,6 @@ func Main(args map[string]interface{}) map[string]interface{} {
 		msg["body"] = fmt.Sprintln("Error uploading file: ", err)
 		return msg
 	}
-	msg["body"] = file_key + outputImageSuffix
+	msg["body"] = fileKey + outputImageSuffix
 	return msg
 }
