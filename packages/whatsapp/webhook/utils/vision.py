@@ -122,13 +122,6 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
         hashed_file = hashlib.sha256(file_bytes).hexdigest()
         if hashed_file != file_hash:
             raise ImageProcessingError(f"Lo siento, la imagen que enviaste está corrupta. Por favor, intenta enviarla de nuevo. `{hashed_file} != {file_hash}`")
-        if 'bg' in op:
-            image_file, file_mime_type = remove_image_background(image_file, file_mime_type, ctx)
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Removed background from image {image_id}")
-        if 'i2a' in op:
-            spaces_key = image_to_asciiart(image_id, image_file, ctx)
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received key {spaces_key} from ASCII Art API")
-            image_file, file_mime_type = get_media_file_from_spaces(spaces_key), 'image/png'
         if 'i2t' in op:
             transcription = convert_image_to_text(image_file, file_mime_type, ctx)
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning {op_name} result")
@@ -136,11 +129,18 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
                 return [f"```{transcription[i:i+4000]}```" for i in range(0, len(transcription), 4000)]
             else:
                 return [f"```{transcription}```"]
+        if 'bg' in op:
+            image_file, file_mime_type = remove_image_background(image_file, file_mime_type, ctx)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Removed background from image {image_id}")
+        if 'i2a' in op:
+            spaces_key = image_to_asciiart(image_id, image_file, ctx)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received key {spaces_key} from ASCII Art API")
+            image_file, file_mime_type = get_media_file_from_spaces(spaces_key), 'image/png'
         if file_mime_type == 'image/png':
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converting PNG to JPEG")
             background_color_name = caption.split(' ')[-1].strip() if 'bg' in caption else None
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected background color: {background_color_name}")
-            image_result, file_mime_type = convert_png_to_jpeg(image_result, background_color_name, ctx=ctx), 'image/jpeg'
+            image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx), 'image/jpeg'
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converted PNG to JPEG")
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning {op_name} result")
         return image_file, file_mime_type

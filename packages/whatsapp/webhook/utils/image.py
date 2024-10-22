@@ -97,6 +97,16 @@ def convert_png_to_jpeg(image_buffer: BytesIO, background_color_name: str, backg
     return jpeg_buffer
 
 
+def read_image_to_asciiart_params(params: dict) -> tuple[bool, str | None, int | None, int | None]:
+    background = bool(params.get('bg', False))
+    background_color_name = params.get('bgcolor')
+    width_str = params.get('w')
+    height_str = params.get('h')
+    width = int(width_str) if width_str is not None else None
+    height = int(height_str) if height_str is not None else None
+    return f'i2a{" bg" if background else ""}', 'image to asciiart', background_color_name, width, height
+
+
 def parse_image_caption(caption: str) -> tuple[str, str, str | None] | tuple[str, str, bool, str | None, int | None, int | None]:
     """
     Parse the caption of an image message
@@ -106,23 +116,17 @@ def parse_image_caption(caption: str) -> tuple[str, str, str | None] | tuple[str
         parts = caption.split()
         op = parts[0][1:]
         params = {}
-        
         for part in parts[1:]:
             if '=' in part:
                 key, value = part.split('=')
                 params[key] = value
             else:
                 params[part] = True
-        
         if op == 'bg':
             background_color_name = params.get('bgcolor')
             return 'bg', 'background removal', background_color_name
         elif op == 'i2a':
-            background = bool(params.get('bg', False))
-            background_color_name = str(params.get('bgcolor'))
-            width = int(params.get('w'))
-            height = int(params.get('h'))
-            return f'i2a {'bg' if background else ''}'.strip(), 'image to asciiart', background_color_name, width, height
+            return read_image_to_asciiart_params(params)
         raise ValueError(f"Lo siento, la operación que intentas realizar no es válida. Las operaciones válidas son: bg (remover fondo de imagen) e i2a (convertir imagen a arte ASCII). La operación que intentaste realizar es: `{op}`")
     return 'i2t', 'image transcription', None
 
