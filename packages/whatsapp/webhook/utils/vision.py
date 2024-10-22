@@ -78,9 +78,9 @@ def remove_image_background(image_buffer: BytesIO, image_mime_type: str, ctx) ->
     return BytesIO(response.content), response.headers['Content-Type']
 
 
-def image_to_asciiart(image_id: str, image_buffer: BytesIO, ctx) -> str:
+def image_to_asciiart(image_id: str, image_buffer: BytesIO, width: int = None, height: int = None, ctx = None) -> str:
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Resizing image {image_id}")
-    width, height = resize_image(image_buffer=image_buffer)
+    width, height = resize_image(image_buffer=image_buffer, tgt_width=width, tgt_height=height)
     headers = {
         'Content-Type': 'application/json',
     }
@@ -108,6 +108,7 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
         parsed_caption = parse_image_caption(caption)
     except CaptionParsingError as e:
         raise ImageProcessingError(str(e))
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Parsed caption: {json.dumps(parsed_caption)}")
     op = parsed_caption[0]
     op_name = parsed_caption[1]
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received {op_name} request on image {image_id}")
@@ -133,12 +134,12 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
             image_file, file_mime_type = remove_image_background(image_file, file_mime_type, ctx)
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Removed background from image {image_id}")
         if 'i2a' in op:
-            spaces_key = image_to_asciiart(image_id, image_file, ctx)
+            spaces_key = image_to_asciiart(image_id, image_file, parsed_caption[3], parsed_caption[4], ctx)
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received key {spaces_key} from ASCII Art API")
             image_file, file_mime_type = get_media_file_from_spaces(spaces_key), 'image/png'
         if file_mime_type == 'image/png':
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converting PNG to JPEG")
-            background_color_name = caption.split(' ')[-1].strip() if 'bg' in caption else None
+            background_color_name = parsed_caption[2]
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Detected background color: {background_color_name}")
             image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx), 'image/jpeg'
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Converted PNG to JPEG")
