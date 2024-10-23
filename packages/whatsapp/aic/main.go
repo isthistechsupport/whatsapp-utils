@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	//"reflect"
 	"github.com/TheZoraiz/ascii-image-converter/aic_package"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -16,9 +15,6 @@ import (
 
 func Main(args map[string]interface{}) map[string]interface{} {
 	msg := make(map[string]interface{})
-	//for key, value := range args {
-	//	fmt.Printf("Key: %s, Value: %v (Type: %s)\n", key, value, reflect.TypeOf(value))
-	//}
 	outputImageSuffix := "-ascii-art.png"
 	fileKey, ok := args["media_id"].(string)
 	if !ok {
