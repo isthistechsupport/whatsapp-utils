@@ -28,8 +28,12 @@ def process_audio(message: dict, metadata: dict, ctx):
 
 
 def get_voices(message: dict, metadata: dict, ctx):
+    command = message['text']['body'].split(' ')
+    if len(command) > 2:
+        search_term = command[2]
+        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices filtered by search term: {search_term}")
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices")
-    voices = get_voice_list()
+    voices = get_voice_list(search_term=search_term)
     voice_groups = []
     current_group = []
     current_length = 0

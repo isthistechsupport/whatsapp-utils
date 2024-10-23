@@ -47,7 +47,7 @@ def transcribe_audio(audio_id: str) -> list[str]:
             return [transcription]
 
 
-def get_voice_list() -> list[dict[str, str]]:
+def get_voice_list(search_term: str = None) -> list[dict[str, str]]:
     """
     Get the list of voices available in the Microsoft Speech API
     """
@@ -58,7 +58,10 @@ def get_voice_list() -> list[dict[str, str]]:
     }
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-    return [{'short_name': voice["ShortName"], 'lang': voice["Locale"], 'gender': voice["Gender"]} for voice in response.json()]
+    voices_list = [{'short_name': voice["ShortName"], 'lang': voice["Locale"], 'gender': voice["Gender"]} for voice in response.json()]
+    if search_term:
+        voices_list = [voice for voice in voices_list if search_term.lower() in voice['short_name'].lower() or search_term.lower() in voice['lang'].lower() or search_term in voice['gender'].lower()]
+    return voices_list
 
 
 def save_voice(sender: str, voice: dict[str, str]) -> None:
