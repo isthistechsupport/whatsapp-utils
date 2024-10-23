@@ -1,9 +1,13 @@
 import os
+import logging
 import hashlib
 import requests
 from io import BytesIO
 from utils.logging import log_to_redis, read_from_redis
 from utils.media import validate_audio_mime_type, get_media_metadata, get_media_file_from_meta
+
+
+logger = logging.getLogger(__name__)
 
 
 def convert_audio_to_text(audio_buffer: BytesIO, audio_mime_type: str) -> str:
@@ -61,7 +65,8 @@ def save_voice(sender: str, voice: dict[str, str]) -> None:
     """
     Save the chosen voice to Redis
     """
-    log_to_redis(key=f"{sender}|voice_short_name|lang|gender", value=f"{voice['sender']}|{voice['short_name']}|{voice['lang']}", value_is_sender=False)
+    logger.debug(f"Saving voice {voice=} for {sender=}")
+    log_to_redis(key=f"{sender}|voice_short_name|lang|gender", value=f"{sender}|{voice['short_name']}|{voice['lang']}", value_is_sender=False)
 
 
 def get_voice(sender: str) -> dict[str, str]:
@@ -70,6 +75,7 @@ def get_voice(sender: str) -> dict[str, str]:
     """
     voice = read_from_redis(f"{sender}|voice_short_name|lang|gender")
     voice = voice.split('|')
+    logger.debug(f"Getting voice for {sender=}: {voice=}")
     return {'short_name': voice[0], 'lang': voice[1], 'gender': voice[2]}
 
 
