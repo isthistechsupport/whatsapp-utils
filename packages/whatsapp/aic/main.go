@@ -1,69 +1,30 @@
 package main
 
-
 import (
 	"fmt"
-	"io"
-	"os"
 	"github.com/TheZoraiz/ascii-image-converter/aic_package"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"io"
+	"os"
+	"reflect"
 )
 
-
-func Main(args map[string]interface{}) map[string]interface{} {
+func Handle(err error) map[string]interface{} {
 	msg := make(map[string]interface{})
-	outputImageSuffix := "-ascii-art.png"
+	fmt.Println("Error: ", err)
+	msg["body"] = fmt.Sprintln("Error: ", err)
+	return msg
+}
+
+func ParseArgs(args map[string]interface{}) (string, aic_package.Flags, error) {
 	fileKey, ok := args["media_id"].(string)
-	if !ok {
-		fmt.Println("Error getting media_id")
-		msg["body"] = fmt.Sprintln("Error getting media_id")
-		return msg
-	}
-	fmt.Println("Processing image with media_id:", fileKey)
-	key := os.Getenv("SPACES_KEY")
-	secret := os.Getenv("SPACES_SECRET")
-
-	s3Config := &aws.Config{
-		Credentials:      credentials.NewStaticCredentials(key, secret, ""),
-		Endpoint:         aws.String("https://nyc3.digitaloceanspaces.com"),
-		Region:           aws.String("us-east-1"),
-		S3ForcePathStyle: aws.Bool(false),
-	}
-	newSession, err := session.NewSession(s3Config)
-	if err != nil {
-		fmt.Println("Error creating session: ", err)
-		msg["body"] = fmt.Sprintln("Error creating session: ", err)
-		return msg
-	}
-	s3Client := s3.New(newSession)
-	image, err := s3Client.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(os.Getenv("SPACES_NAME")),
-		Key:    aws.String(fileKey + ".jpeg"),
-	})
-	if err != nil {
-		fmt.Println("Error getting object: ", err)
-		msg["body"] = fmt.Sprintln("Error getting object: ", err)
-		return msg
-	}
-	file, err := os.Create("/tmp/" + fileKey + ".jpeg")
-	if err != nil {
-		fmt.Println("Error creating file: ", err)
-		msg["body"] = fmt.Sprintln("Error creating file: ", err)
-		return msg
-	}
-	_, err = io.Copy(file, image.Body)
-	if err != nil {
-		fmt.Println("Error saving file: ", err)
-		msg["body"] = fmt.Sprintln("Error saving file: ", err)
-		return msg
-	}
-	defer file.Close()
-	defer image.Body.Close()
-
 	flags := aic_package.DefaultFlags()
+	if !ok {
+		return "", flags, fmt.Errorf("no media_id provided")
+	}
 	widthFlt64, wOk := args["width"].(float64)
 	if !wOk {
 		fmt.Println("No width provided")
@@ -83,20 +44,66 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	} else if hOk {
 		flags.Height = height
 	}
+	flags.Complex = args["complex"].(bool)
+	flags.Negative = args["negative"].(bool)
+	flags.FlipX = args["flip_x"].(bool)
+	flags.FlipY = args["flip_y"].(bool)
+	return fileKey, flags, nil
+}
+
+func Main(args map[string]interface{}) map[string]interface{} {
+	outputImageSuffix := "-ascii-art.png"
+	for key, value := range args {
+		fmt.Println("Key:", key, "Value:", value, "Type:", reflect.TypeOf(value))
+	}
+	fileKey, flags, err := ParseArgs(args)
+	if err != nil {
+		return Handle(err)
+	}
+	fmt.Println("Processing image with media_id:", fileKey)
+	key := os.Getenv("SPACES_KEY")
+	secret := os.Getenv("SPACES_SECRET")
+
+	s3Config := &aws.Config{
+		Credentials:      credentials.NewStaticCredentials(key, secret, ""),
+		Endpoint:         aws.String("https://nyc3.digitaloceanspaces.com"),
+		Region:           aws.String("us-east-1"),
+		S3ForcePathStyle: aws.Bool(false),
+	}
+	newSession, err := session.NewSession(s3Config)
+	if err != nil {
+		return Handle(err)
+	}
+	s3Client := s3.New(newSession)
+	image, err := s3Client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("SPACES_NAME")),
+		Key:    aws.String(fileKey + ".jpeg"),
+	})
+	if err != nil {
+		return Handle(err)
+	}
+	file, err := os.Create("/tmp/" + fileKey + ".jpeg")
+	if err != nil {
+		return Handle(err)
+	}
+	_, err = io.Copy(file, image.Body)
+	if err != nil {
+		return Handle(err)
+	}
+	defer file.Close()
+	defer image.Body.Close()
+
 	flags.SaveImagePath = "/tmp/"
+	flags.OnlySave = true
 	fmt.Println("Converting image:", fileKey+".jpeg")
 	_, err = aic_package.Convert("/tmp/"+fileKey+".jpeg", flags)
 	if err != nil {
-		fmt.Println("Error converting image: ", err)
-		msg["body"] = fmt.Sprintln("Error converting image: ", err)
-		return msg
+		return Handle(err)
 	}
 	fmt.Println("Converted image:", fileKey+".jpeg", "to:", "/tmp/"+fileKey+outputImageSuffix)
 	file, err = os.Open("/tmp/" + fileKey + outputImageSuffix)
 	if err != nil {
-		fmt.Println("Error opening file: ", err)
-		msg["body"] = fmt.Sprintln("Error opening file: ", err)
-		return msg
+		return Handle(err)
 	}
 
 	_, err = s3Client.PutObject(&s3.PutObjectInput{
@@ -106,10 +113,9 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	})
 	defer file.Close()
 	if err != nil {
-		fmt.Println("Error uploading file: ", err)
-		msg["body"] = fmt.Sprintln("Error uploading file: ", err)
-		return msg
+		return Handle(err)
 	}
+	msg := make(map[string]interface{})
 	msg["body"] = fileKey + outputImageSuffix
 	return msg
 }
