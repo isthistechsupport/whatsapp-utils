@@ -34,12 +34,13 @@ def process_text(message: dict, metadata: dict, ctx):
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices")
             voices = get_voice_list()
             voices_str = '\n'.join([f"{voice['short_name']}" for voice in voices])
-            send_text(
-                phone_number_id=metadata['phone_number_id'],
-                sender=f'+{message["from"]}',
-                text=f"Las voces disponibles son: ```{voices_str}```",
-                reply_to_id=message['id']
-            )
+            for i in range(0, len(voices_str), 4000):
+                send_text(
+                    phone_number_id=metadata['phone_number_id'],
+                    sender=f'+{message["from"]}',
+                    text=f"Las voces disponibles son: ```{voices_str[i:i+4000]}```",
+                    reply_to_id=message['id']
+                )
         elif text.split(' ')[1] == 'set_voice':
             voice_short_name = text.split(' ')[2]
             voices = get_voice_list()
