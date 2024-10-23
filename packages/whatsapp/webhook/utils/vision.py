@@ -54,6 +54,7 @@ def validate_media(image_id: str, ctx) -> BytesIO:
         hashed_file = hashlib.sha256(file_bytes).hexdigest()
         if hashed_file != file_hash:
             raise ImageProcessingError(f"Lo siento, la imagen que enviaste está corrupta. Por favor, intenta enviarla de nuevo. `{hashed_file} != {file_hash}`")
+        return image_file
 
 
 def remove_image_background(image_buffer: BytesIO, image_mime_type: str, ctx) -> tuple[BytesIO, str]:
