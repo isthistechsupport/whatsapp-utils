@@ -33,14 +33,18 @@ def process_text(message: dict, metadata: dict, ctx):
         if text.split(' ')[1] == 'get_voices':
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices")
             voices = get_voice_list()
-            voices_str = '\n'.join([f"{voice['short_name']}" for voice in voices])
-            for i in range(0, len(voices_str), 4000):
-                send_text(
-                    phone_number_id=metadata['phone_number_id'],
-                    sender=f'+{message["from"]}',
-                    text=f"Las voces disponibles son: ```{voices_str[i:i+4000]}```",
-                    reply_to_id=message['id']
-                )
+            voices_str = ''
+            for voice in voices:
+                voice_entry = f"{voice['short_name']}\n"
+                if len(voices_str) + len(voice_entry) > 4000:
+                    send_text(
+                        phone_number_id=metadata['phone_number_id'],
+                        sender=f'+{message["from"]}',
+                        text=f"Las voces disponibles son: \n```{voices_str}```",
+                        reply_to_id=message['id']
+                    )
+                    voices_str = voice_entry
+                voices_str += voice_entry
         elif text.split(' ')[1] == 'set_voice':
             voice_short_name = text.split(' ')[2]
             voices = get_voice_list()
