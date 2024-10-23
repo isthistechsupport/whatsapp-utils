@@ -85,7 +85,7 @@ def image_to_asciiart(image_id: str, image_buffer: BytesIO, flags: AsciiArtFlags
     payload['height'] = height
     payload['media_id'] = image_id
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Sending payload {json.dumps(payload)} to ASCII Art API")
-    response = requests.get(
+    response = requests.post(
         f'{os.getenv("FUNCTIONS_ENDPOINT")}/api/v1/web/{os.getenv("FUNCTIONS_NAMESPACE")}/whatsapp/aic',
         headers=headers,
         json=payload

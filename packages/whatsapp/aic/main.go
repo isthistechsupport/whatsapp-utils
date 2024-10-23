@@ -25,29 +25,33 @@ func ParseArgs(args map[string]interface{}) (string, aic_package.Flags, error) {
 	if !ok {
 		return "", flags, fmt.Errorf("no media_id provided")
 	}
-	widthFlt64, wOk := args["width"].(float64)
-	if !wOk {
-		fmt.Println("No width provided")
+	widthFlt64, ok := args["width"].(float64)
+	if !ok {
+		Handle(fmt.Errorf("no width provided"))
 	}
 	width := int(widthFlt64) * 2 // Multiply by 2 to maintain aspect ratio
-	fmt.Println("Width:", width)
-	heightFlt64, hOk := args["height"].(float64)
-	if !hOk {
-		fmt.Println("No height provided")
+	heightFlt64, ok := args["height"].(float64)
+	if !ok {
+		Handle(fmt.Errorf("no height provided"))
 	}
 	height := int(heightFlt64)
-	fmt.Println("Height:", height)
-	if wOk && hOk {
-		flags.Dimensions = []int{width, height}
-	} else if wOk {
-		flags.Width = width
-	} else if hOk {
-		flags.Height = height
+	flags.Dimensions = []int{width, height}
+	flags.Complex, ok = args["complex"].(bool)
+	if !ok {
+		Handle(fmt.Errorf("no use complex chars flag provided"))
 	}
-	flags.Complex = args["complex"].(bool)
-	flags.Negative = args["negative"].(bool)
-	flags.FlipX = args["flip_x"].(bool)
-	flags.FlipY = args["flip_y"].(bool)
+	flags.Negative, ok = args["negative"].(bool)
+	if !ok {
+		Handle(fmt.Errorf("no negative flag provided"))
+	}
+	flags.FlipX, ok = args["flip_x"].(bool)
+	if !ok {
+		Handle(fmt.Errorf("no flip_x flag provided"))
+	}
+	flags.FlipY, ok = args["flip_y"].(bool)
+	if !ok {
+		Handle(fmt.Errorf("no flip_y flag provided"))
+	}
 	return fileKey, flags, nil
 }
 
