@@ -43,7 +43,7 @@ def transcribe_audio(audio_id: str) -> list[str]:
             return [transcription]
 
 
-def get_voice_list() -> list[str]:
+def get_voice_list() -> list[dict[str, str]]:
     """
     Get the list of voices available in the Microsoft Speech API
     """
