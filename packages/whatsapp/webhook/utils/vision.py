@@ -91,7 +91,7 @@ def image_to_asciiart(image_id: str, image_buffer: BytesIO, width: int = None, h
     }
     logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Sending payload {json.dumps(payload)} to ASCII Art API")
     response = requests.get(
-        'https://faas-nyc1-2ef2e6cc.doserverless.co/api/v1/web/fn-e01604ac-526b-43b6-9ecf-31de678fcc44/whatsapp/aic',
+        f'{os.getenv("FUNCTIONS_ENDPOINT")}/api/v1/web/{os.getenv("FUNCTIONS_NAMESPACE")}/whatsapp/aic',
         headers=headers,
         json=payload
     )
