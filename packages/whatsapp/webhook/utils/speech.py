@@ -66,7 +66,7 @@ def save_voice(sender: str, voice: dict[str, str]) -> None:
     Save the chosen voice to Redis
     """
     logger.debug(f"Saving voice {voice=} for {sender=}")
-    log_to_redis(key=f"{sender}|voice_short_name|lang|gender", value=f"{sender}|{voice['short_name']}|{voice['lang']}", value_is_sender=False)
+    log_to_redis(key=f"{sender}|voice_short_name|lang|gender", value=f"{voice['short_name']}|{voice['lang']}|{voice['gender']}", value_is_sender=False)
 
 
 def get_voice(sender: str) -> dict[str, str]:
