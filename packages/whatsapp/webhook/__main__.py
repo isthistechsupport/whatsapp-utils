@@ -2,9 +2,10 @@ import os
 import json
 import logging
 from time import sleep
-from utils.vision import alter_image, ImageProcessingError
+from utils.media import MediaProcessingError
 from utils.speech import transcribe_audio, read_text
 from utils.logging import log_to_redis, init_logging
+from utils.vision import alter_image, ImageProcessingError
 from utils.messaging import mark_as_read, send_text, send_media
 from utils.healthcheck import healthcheck_routing, EMPTY_200_RESPONSE
 
@@ -54,17 +55,7 @@ def process_image(message: dict, metadata: dict, ctx):
     log_to_redis(key=message['image']['id'], value=message['from'])
     caption: str = message['image'].get('caption', '')
     logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing image request from {message['from']}")
-    try:
-        result = alter_image(caption=caption, image_id=message['image']['id'], ctx=ctx)
-    except ImageProcessingError as e:
-        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with error message")
-        send_text(
-            phone_number_id=metadata['phone_number_id'],
-            sender=f'+{message["from"]}',
-            text=str(e),
-            reply_to_id=message['id']
-        )
-        return
+    result = alter_image(caption=caption, image_id=message['image']['id'], ctx=ctx)
     if isinstance(result, tuple):
         image_result, mime_type = result
         send_media(
@@ -123,6 +114,13 @@ def process_change(change: dict, ctx: dict):
             else:
                 logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing unsupported message: {json.dumps(message)}")
                 process_unsupported(message, metadata, ctx)
+        except (MediaProcessingError, ImageProcessingError) as e:
+            send_text(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                text=str(e),
+                reply_to_id=message['id']
+            )
         except Exception as e:
             send_text(
                 phone_number_id=metadata['phone_number_id'],

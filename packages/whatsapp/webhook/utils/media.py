@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 SPACES_ENDPOINT = 'https://nyc3.digitaloceanspaces.com'
 
 
+class MediaProcessingError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(self.message)
+
+
 def validate_audio_mime_type(audio_mime_type: str) -> bool:
     """
     Validate if the audio mime type is supported by the OpenAI API
@@ -140,6 +146,8 @@ def post_media_file_to_meta(phone_number_id: str, media_buffer: BytesIO, mime_ty
     """
     Post the media file to the Meta Graph API and get the posted media ID
     """
+    if media_buffer.getbuffer().nbytes > 5 * 1024 * 1024:
+        raise MediaProcessingError("El archivo excede el tamaño máximo de 5 MB. Por favor intenta con un texto más corto, o con menores dimensiones de arte ASCII.")
     url = f'https://graph.facebook.com/v21.0/{phone_number_id}/media'
     headers = {
         'Authorization': f'Bearer {os.environ.get("GRAPH_API_TOKEN")}',
