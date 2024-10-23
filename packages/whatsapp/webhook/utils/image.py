@@ -175,7 +175,7 @@ def read_image_to_asciiart_params(params: dict) -> tuple[str, str, AsciiArtFlags
 
 def parse_image_caption(
     caption: str,
-) -> tuple[str, str, str | AsciiArtFlags | None]:
+) -> tuple[str, str, str | AsciiArtFlags]:
     """
     Parse the caption of an image message
     """
@@ -191,7 +191,7 @@ def parse_image_caption(
             else:
                 params[part] = True
         if op == "bg":
-            background_color_name = params.get("bgcolor")
+            background_color_name = str(params.get("bgcolor", "white"))
             return "bg", "background removal", background_color_name
         elif op == "i2a":
             return read_image_to_asciiart_params(params)

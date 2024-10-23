@@ -120,7 +120,7 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
         if 'bg' in op:
             image_file, file_mime_type = remove_image_background(image_file, file_mime_type, ctx)
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Removed background from image {image_id}")
-            background_color_name = parsed_caption[2].background_color_name if isinstance(parsed_caption[2], AsciiArtFlags) else parsed_caption[2].background_color_name
+            background_color_name = parsed_caption[2].background_color_name if isinstance(parsed_caption[2], AsciiArtFlags) else parsed_caption[2]
             image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx)
         if 'i2a' in op and 'bg' in op:
             post_media_file_to_spaces(f'{image_id}-bgrm', image_file, file_mime_type)
