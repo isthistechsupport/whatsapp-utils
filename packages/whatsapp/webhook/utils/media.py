@@ -150,6 +150,7 @@ def post_media_file_to_meta(phone_number_id: str, media_buffer: BytesIO, mime_ty
         'type': (None, mime_type),
         'messaging_product': (None, 'whatsapp')
     }
+    logger.debug(f"Posting media file to {url=} with {headers=}, {files=}")
     response = requests.request("POST", url, headers=headers, files=files)
     response.raise_for_status()
     try:
