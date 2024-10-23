@@ -44,6 +44,16 @@ def process_text(message: dict, metadata: dict, ctx):
                         reply_to_id=message['id']
                     )
                     voices_str = voice_entry
+                elif voice == voices[-1]:
+                    voices_str += voice_entry
+                    send_text(
+                        phone_number_id=metadata['phone_number_id'],
+                        sender=f'+{message["from"]}',
+                        text=f"Las voces disponibles son: \n```{voices_str}```",
+                        reply_to_id=message['id']
+                    )
+                else:
+                    voices_str += voice_entry
                 voices_str += voice_entry
         elif text.split(' ')[1] == 'set_voice':
             voice_short_name = text.split(' ')[2]
