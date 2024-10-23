@@ -33,6 +33,8 @@ packages:
         REDIS_HOST: "${REDIS_HOST}"
         REDIS_PORT: "${REDIS_PORT}"
         REDIS_PASSWORD: "${REDIS_PASSWORD}"
+        FUNCTIONS_ENDPOINT: "${FUNCTIONS_ENDPOINT}"
+        FUNCTIONS_NAMESPACE: "${FUNCTIONS_NAMESPACE}"
       annotations: {}
       limits:
         timeout: 30000
