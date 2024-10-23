@@ -27,33 +27,37 @@ def process_audio(message: dict, metadata: dict, ctx):
         sleep(0.25)
 
 
+def get_voices(message: dict, metadata: dict, ctx):
+    logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices")
+    voices = get_voice_list()
+    voice_groups = []
+    current_group = []
+    current_length = 0
+    for voice in voices:
+        voice_str = voice['short_name']
+        if current_length + len(voice_str) + 1 > 4000:  # +1 for the linebreak
+            voice_groups.append(current_group)
+            current_group = []
+            current_length = 0
+        current_group.append(voice_str)
+        current_length += len(voice_str) + 1  # +1 for the linebreak
+    if current_group:
+        voice_groups.append(current_group)
+    for group in voice_groups:
+        send_text(
+            phone_number_id=metadata['phone_number_id'],
+            sender=f'+{message["from"]}',
+            text=f"```{'\n'.join(group)}```",
+            reply_to_id=message['id']
+        )
+        sleep(0.25)
+
+
 def process_text(message: dict, metadata: dict, ctx):
     text = message['text']['body']
     if text.startswith('/tts'):
         if text.split(' ')[1] == 'get_voices':
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices")
-            voices = get_voice_list()
-            voice_groups = []
-            current_group = []
-            current_length = 0
-            for voice in voices:
-                voice_str = voice['short_name']
-                if current_length + len(voice_str) + 1 > 4000:  # +1 for the linebreak
-                    voice_groups.append(current_group)
-                    current_group = []
-                    current_length = 0
-                current_group.append(voice_str)
-                current_length += len(voice_str) + 1  # +1 for the linebreak
-            if current_group:
-                voice_groups.append(current_group)
-            for group in voice_groups:
-                send_text(
-                    phone_number_id=metadata['phone_number_id'],
-                    sender=f'+{message["from"]}',
-                    text='\n'.join(group),
-                    reply_to_id=message['id']
-                )
-                sleep(0.25)
+            get_voices(message, metadata, ctx)
         elif text.split(' ')[1] == 'set_voice':
             voice_short_name = text.split(' ')[2]
             voices = get_voice_list()
