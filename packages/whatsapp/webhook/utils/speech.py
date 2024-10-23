@@ -92,7 +92,7 @@ def read_text(text: str, voice: dict[str, str]) -> tuple[BytesIO, str]:
     }
     body = f"""
     <speak version="1.0" xml:lang="{voice['lang']}">
-        <voice xml:lang="{voice['lang']}" xml:gender="{voice['gender']}" name="{voice['voice_short_name']}">
+        <voice xml:lang="{voice['lang']}" xml:gender="{voice['gender']}" name="{voice['short_name']}">
             {text}
         </voice>
     </speak>
