@@ -2,6 +2,7 @@ import os
 import hashlib
 import requests
 from io import BytesIO
+from utils.logging import log_to_redis, read_from_redis
 from utils.media import validate_audio_mime_type, get_media_metadata, get_media_file_from_meta
 
 
@@ -42,7 +43,37 @@ def transcribe_audio(audio_id: str) -> list[str]:
             return [transcription]
 
 
-def read_text(text: str) -> tuple[BytesIO, str]:
+def get_voice_list() -> list[str]:
+    """
+    Get the list of voices available in the Microsoft Speech API
+    """
+    url = f"https://{os.getenv('MS_SPEECH_REGION')}.tts.speech.microsoft.com/cognitiveservices/voices/list"
+    headers = {
+        "Ocp-Apim-Subscription-Key": f"{os.getenv('MS_SPEECH_KEY')}",
+        "User-Agent": "doslsfn:whatsapp_utils:v1.1"
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return [{'short_name': voice["ShortName"], 'lang': voice["Locale"], 'gender': voice["Gender"]} for voice in response.json()]
+
+
+def save_voice(sender: str, voice: dict[str, str]) -> None:
+    """
+    Save the chosen voice to Redis
+    """
+    log_to_redis(key=f"{sender}|voice_short_name|lang|gender", value=f"{voice['sender']}|{voice['short_name']}|{voice['lang']}", value_is_sender=False)
+
+
+def get_voice(sender: str) -> dict[str, str]:
+    """
+    Get the chosen voice from Redis
+    """
+    voice = read_from_redis(f"{sender}|voice_short_name|lang|gender")
+    voice = voice.split('|')
+    return {'short_name': voice[0], 'lang': voice[1], 'gender': voice[2]}
+
+
+def read_text(text: str, voice: dict[str, str]) -> tuple[BytesIO, str]:
     """
     Convert a text to an audio file using the Microsoft Speech API
     """
@@ -54,8 +85,8 @@ def read_text(text: str) -> tuple[BytesIO, str]:
         "User-Agent": "doslsfn:whatsapp_utils:v1.1"
     }
     body = f"""
-    <speak version="1.0" xml:lang="es-CO">
-        <voice xml:lang="es-CO" xml:gender="Female" name="es-CO-SalomeNeural">
+    <speak version="1.0" xml:lang="{voice['lang']}">
+        <voice xml:lang="{voice['lang']}" xml:gender="{voice['gender']}" name="{voice['voice_short_name']}">
             {text}
         </voice>
     </speak>

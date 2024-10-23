@@ -3,11 +3,11 @@ import json
 import logging
 from time import sleep
 from utils.media import MediaProcessingError
-from utils.speech import transcribe_audio, read_text
 from utils.logging import log_to_redis, init_logging
 from utils.vision import alter_image, ImageProcessingError
 from utils.messaging import mark_as_read, send_text, send_media
 from utils.healthcheck import healthcheck_routing, EMPTY_200_RESPONSE
+from utils.speech import transcribe_audio, read_text, get_voice_list, save_voice, get_voice
 
 
 logger = logging.getLogger(__name__)
@@ -30,17 +30,49 @@ def process_audio(message: dict, metadata: dict, ctx):
 def process_text(message: dict, metadata: dict, ctx):
     text = message['text']['body']
     if text.startswith('/tts'):
-        logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing text-to-speech request from {message['from']}")
-        text = text[4:].strip()
-        audio_buffer, mime_type = read_text(text)
-        logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with audio message")
-        send_media(
-            phone_number_id=metadata['phone_number_id'],
-            sender=f'+{message["from"]}',
-            mime_type=mime_type,
-            media_buffer=audio_buffer,
-            reply_to_id=message['id']
-        )
+        if text.split(' ')[1] == 'get_voices':
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with available voices")
+            voices = get_voice_list()
+            voices_str = '\n'.join([f"{voice['short_name']}" for voice in voices])
+            send_text(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                text=f"Las voces disponibles son: ```{voices_str}```",
+                reply_to_id=message['id']
+            )
+        elif text.split(' ')[1] == 'set_voice':
+            voice_short_name = text.split(' ')[2]
+            voices = get_voice_list()
+            voice = next((voice for voice in voices if voice['short_name'] == voice_short_name), None)
+            save_voice(sender=message['from'], voice=voice)
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with voice set confirmation")
+            send_text(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                text=f"Voz seleccionada: `{voice}`",
+                reply_to_id=message['id']
+            )
+        elif text.split(' ')[1] == 'get_voice':
+            voice = get_voice(sender=message['from'])
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with current voice")
+            send_text(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                text=f"Voz seleccionada: `{voice}`",
+                reply_to_id=message['id']
+            )
+        else:
+            logger.info(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Processing text-to-speech request from {message['from']}")
+            text = text[4:].strip()
+            audio_buffer, mime_type = read_text(text, voice=get_voice(sender=message['from']))
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with audio message")
+            send_media(
+                phone_number_id=metadata['phone_number_id'],
+                sender=f'+{message["from"]}',
+                mime_type=mime_type,
+                media_buffer=audio_buffer,
+                reply_to_id=message['id']
+            )
     else:
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Replying with help message")
         send_text(
