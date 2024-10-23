@@ -20,6 +20,10 @@ jobs:
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      - run: curl -sfS https://dotenvx.sh/install.sh | sh
       - run: doctl serverless install
       - run: doctl serverless connect ${{ secrets.DIGITALOCEAN_FUNCTIONS_NAMESPACE }}
-      - run: doctl serverless deploy . --remote-build
+      - run: dotenvx run -- doctl serverless deploy . --remote-build
+        env:
+          DOTENV_PRIVATE_KEY: ${{ secrets.DOTENV_PRIVATE_KEY }}
+      - run: echo "The job has completed deployment"
