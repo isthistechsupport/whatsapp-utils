@@ -44,10 +44,11 @@ def get_voices(message: dict, metadata: dict, ctx):
     if current_group:
         voice_groups.append(current_group)
     for group in voice_groups:
+        text = '\n'.join(group)
         send_text(
             phone_number_id=metadata['phone_number_id'],
             sender=f'+{message["from"]}',
-            text=f"```{'\n'.join(group)}```",
+            text=f"```{text}```",
             reply_to_id=message['id']
         )
         sleep(0.25)
