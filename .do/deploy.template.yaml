@@ -1,0 +1,66 @@
+spec:
+  name: whatsapp-utils-backend
+  services:
+  - name: web
+    git:
+      branch: main
+      repo_clone_url: https://github.com/isthistechsupport/whatsapp-utils.git
+    envs:
+    - key: VERIFICATION_TOKEN
+      type: SECRET
+      scope: RUN_TIME
+    - key: PAPERTRAIL_TOKEN
+      type: SECRET
+      scope: RUN_TIME
+    - key: GRAPH_API_TOKEN
+      type: SECRET
+      scope: RUN_TIME
+    - key: OPENAI_API_KEY
+      type: SECRET
+      scope: RUN_TIME
+    - key: MS_SPEECH_REGION
+      type: SECRET
+      scope: RUN_TIME
+    - key: MS_SPEECH_KEY
+      type: SECRET
+      scope: RUN_TIME
+    - key: MS_VISION_KEY
+      type: SECRET
+      scope: RUN_TIME
+    - key: MS_VISION_ENDPOINT
+      type: SECRET
+      scope: RUN_TIME
+    - key: SYSLOG_HOST
+      type: SECRET
+      scope: RUN_TIME
+    - key: SYSLOG_PORT
+      type: SECRET
+      scope: RUN_TIME
+    - key: SPACES_ENDPOINT
+      type: SECRET
+      scope: RUN_TIME
+    - key: SPACES_NAME
+      type: SECRET
+      scope: RUN_TIME
+    - key: SPACES_KEY
+      type: SECRET
+      scope: RUN_TIME
+    - key: SPACES_SECRET
+      type: SECRET
+      scope: RUN_TIME
+    - key: REDIS_HOST
+      type: SECRET
+      scope: RUN_TIME
+    - key: REDIS_PORT
+      type: SECRET
+      scope: RUN_TIME
+    - key: REDIS_PASSWORD
+      type: SECRET
+      scope: RUN_TIME
+    - key: ASCII_ART_API_SECRET
+      type: SECRET
+      scope: RUN_TIME
+    - key: APP_URL
+      value: ${APP_URL}
+      type: SECRET
+      scope: RUN_TIME
