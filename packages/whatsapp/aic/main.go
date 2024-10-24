@@ -36,7 +36,7 @@ func ParseArgs(args map[string]interface{}) (string, aic_package.Flags, error) {
 	}
 	height := int(heightFlt64)
 	flags.Dimensions = []int{width, height}
-	flags.Complex, ok = args["complex"].(bool)
+	flags.Complex, ok = args["use_complex_charset"].(bool)
 	if !ok {
 		Handle(fmt.Errorf("no use complex chars flag provided"))
 	}

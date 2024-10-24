@@ -35,6 +35,7 @@ packages:
         REDIS_PASSWORD: "${REDIS_PASSWORD}"
         FUNCTIONS_ENDPOINT: "${FUNCTIONS_ENDPOINT}"
         FUNCTIONS_NAMESPACE: "${FUNCTIONS_NAMESPACE}"
+        ASCII_ART_API_SECRET: "${ASCII_ART_API_SECRET}"
       annotations: {}
       limits:
         timeout: 30000

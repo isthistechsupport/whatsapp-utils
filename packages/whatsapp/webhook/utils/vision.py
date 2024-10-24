@@ -79,6 +79,7 @@ def image_to_asciiart(image_id: str, image_buffer: BytesIO, flags: AsciiArtFlags
     width, height = resize_image(image_buffer=image_buffer, tgt_width=flags.width, tgt_height=flags.height)
     headers = {
         'Content-Type': 'application/json',
+        'X-Require-Whisk-Auth': os.getenv('ASCII_ART_API_SECRET'),
     }
     payload = flags._asdict()
     payload['width'] = width
