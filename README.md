@@ -84,7 +84,7 @@ This project is hosted in the DigitalOcean Functions free tier. Get a $200 credi
 
   - FUNCTIONS_NAMESPACE: Must be the functions namespace you created.
 
-  - ASCII_ART_API_SECRET: Can be any value before first deployment. When you first deploy the functions, the whatsapp/aic function will generate a secret key. Go to [your functions dashboard](https://cloud.digitalocean.com/functions), choose your namespace, then click the whatsapp/aic function and save the key shown in the Settings tab, in the Access & Security section, as the `X-Require-Whisk-Auth:` header in the cURL command. Fill that value here.
+  - ASCII_ART_API_SECRET: Can be any value you want. Any word with 8 or more letters suffices. Do not use the same value as VERIFICATION_TOKEN.
 
 - Deploy the functions by running `doctl serverless deploy .` on the repo root directory.
 
