@@ -44,7 +44,7 @@ packages:
       main: ""
       runtime: go:1.20
       web: true
-      webSecure: yes
+      webSecure: "${ASCII_ART_API_SECRET}"
       parameters: {}
       environment: {}
       annotations: {}
