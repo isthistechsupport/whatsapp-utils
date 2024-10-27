@@ -36,11 +36,14 @@ def log_to_redis(key: str, value: str, value_is_sender: bool = True):
     r.set(f'{key}-timestamp', int(time.time()))
 
 
-def read_from_redis(key: str) -> str:
+def read_from_redis(key: str) -> str | None:
     r = redis.Redis(
         host=os.getenv('REDIS_HOST'),
         port=os.getenv('REDIS_PORT'),
         password=os.getenv('REDIS_PASSWORD'),
         ssl=True
     )
-    return r.get(key).decode('utf-8')
+    data = r.get(key)
+    if data:
+        return data.decode('utf-8')
+    return None

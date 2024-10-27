@@ -74,9 +74,11 @@ def save_voice(sender: str, voice: dict[str, str]) -> None:
 
 def get_voice(sender: str) -> dict[str, str]:
     """
-    Get the chosen voice from Redis
+    Get the chosen voice from Redis. If there is no voice saved, return the default voice
     """
     voice = read_from_redis(f"{sender}|voice_short_name|lang|gender")
+    if not voice:
+        return {'short_name': 'en-US-JennyNeural', 'lang': 'en-US', 'gender': 'female'}
     voice = voice.split('|')
     logger.debug(f"Getting voice for {sender=}: {voice=}")
     return {'short_name': voice[0], 'lang': voice[1], 'gender': voice[2]}
