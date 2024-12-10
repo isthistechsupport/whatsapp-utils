@@ -9,10 +9,10 @@ packages:
       LOG_DESTINATIONS: '[{"papertrail":{"token":"${PAPERTRAIL_TOKEN}"}}]'
       SYSLOG_HOST: "${SYSLOG_HOST}"
       SYSLOG_PORT: "${SYSLOG_PORT}"
-      SPACES_ENDPOINT: "${SPACES_ENDPOINT}"
-      SPACES_NAME: "${SPACES_NAME}"
-      SPACES_KEY: "${SPACES_KEY}"
-      SPACES_SECRET: "${SPACES_SECRET}"
+      STORAGE_ENDPOINT: "${STORAGE_ENDPOINT}"
+      STORAGE_NAME: "${STORAGE_NAME}"
+      STORAGE_KEY: "${STORAGE_KEY}"
+      STORAGE_SECRET: "${STORAGE_SECRET}"
     annotations: {}
     functions:
     - name: webhook

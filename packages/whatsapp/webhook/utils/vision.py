@@ -128,11 +128,11 @@ def alter_image(caption: str, image_id: str, ctx) -> tuple[BytesIO, str] | list[
             logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Posted image with removed background to DigitalOcean Spaces")
             image_id = f'{image_id}-bgrm'
         if 'i2a' in op:
-            spaces_key = image_to_asciiart(image_id, image_file, parsed_caption[2], ctx)
+            file_key = image_to_asciiart(image_id, image_file, parsed_caption[2], ctx)
             if image_id.endswith('-bgrm'):
                 delete_media_file_from_spaces(f'{image_id}-bgrm')
-            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received key {spaces_key} from ASCII Art API")
-            image_file, file_mime_type = get_media_file_from_spaces(spaces_key, delete=True), 'image/png'
+            logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Received path {file_key} from ASCII Art API")
+            image_file, file_mime_type = get_media_file_from_spaces(file_key, delete=True), 'image/png'
             background_color_name = parsed_caption[2].background_color_name
             image_file, file_mime_type = convert_png_to_jpeg(image_file, background_color_name, ctx=ctx)
         logger.debug(f"ActvID {ctx.activation_id} Remaining millis {ctx.get_remaining_time_in_millis()} Returning {op_name} result")

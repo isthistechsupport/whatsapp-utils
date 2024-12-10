@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"reflect"
+
 	"github.com/TheZoraiz/ascii-image-converter/aic_package"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"io"
-	"os"
-	"reflect"
 )
 
 func Handle(err error) map[string]interface{} {
@@ -65,13 +66,15 @@ func Main(args map[string]interface{}) map[string]interface{} {
 		return Handle(err)
 	}
 	fmt.Println("Processing image with media_id:", fileKey)
-	key := os.Getenv("SPACES_KEY")
-	secret := os.Getenv("SPACES_SECRET")
+	key := os.Getenv("STORAGE_KEY")
+	secret := os.Getenv("STORAGE_SECRET")
+	endpoint := os.Getenv("STORAGE_ENDPOINT")
+	region := os.Getenv("STORAGE_REGION")
 
 	s3Config := &aws.Config{
 		Credentials:      credentials.NewStaticCredentials(key, secret, ""),
-		Endpoint:         aws.String("https://nyc3.digitaloceanspaces.com"),
-		Region:           aws.String("us-east-1"),
+		Endpoint:         aws.String(endpoint),
+		Region:           aws.String(region),
 		S3ForcePathStyle: aws.Bool(false),
 	}
 	newSession, err := session.NewSession(s3Config)
@@ -80,7 +83,7 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	}
 	s3Client := s3.New(newSession)
 	image, err := s3Client.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String(os.Getenv("SPACES_NAME")),
+		Bucket: aws.String(os.Getenv("STORAGE_NAME")),
 		Key:    aws.String(fileKey + ".jpeg"),
 	})
 	if err != nil {
@@ -111,7 +114,7 @@ func Main(args map[string]interface{}) map[string]interface{} {
 	}
 
 	_, err = s3Client.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(os.Getenv("SPACES_NAME")),
+		Bucket: aws.String(os.Getenv("STORAGE_NAME")),
 		Key:    aws.String(fileKey + outputImageSuffix),
 		Body:   file,
 	})

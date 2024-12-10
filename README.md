@@ -66,13 +66,13 @@ This project is hosted in the DigitalOcean Functions free tier. Get a $200 credi
 
   - SYSLOG_PORT: Must be the port where the above server will listen for incoming logs.
 
-  - SPACES_ENDPOINT: Must be the Spaces/S3 endpoint URL.
+  - STORAGE_ENDPOINT: Must be the Spaces/S3 endpoint URL.
 
-  - SPACES_NAME: Must be the Spaces/S3 bucket name.
+  - STORAGE_NAME: Must be the Spaces/S3 bucket name.
 
-  - SPACES_KEY: Must be the Spaces/S3 access key.
+  - STORAGE_KEY: Must be the Spaces/S3 access key.
 
-  - SPACES_SECRET: Must be the Spaces/S3 access secret.
+  - STORAGE_SECRET: Must be the Spaces/S3 access secret.
 
   - REDIS_HOST: Must be the Redis server URL.
 

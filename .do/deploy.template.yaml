@@ -36,16 +36,16 @@ spec:
     - key: SYSLOG_PORT
       type: SECRET
       scope: RUN_TIME
-    - key: SPACES_ENDPOINT
+    - key: STORAGE_ENDPOINT
       type: SECRET
       scope: RUN_TIME
-    - key: SPACES_NAME
+    - key: STORAGE_NAME
       type: SECRET
       scope: RUN_TIME
-    - key: SPACES_KEY
+    - key: STORAGE_KEY
       type: SECRET
       scope: RUN_TIME
-    - key: SPACES_SECRET
+    - key: STORAGE_SECRET
       type: SECRET
       scope: RUN_TIME
     - key: REDIS_HOST

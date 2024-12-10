@@ -6,7 +6,6 @@ from io import BytesIO
 
 
 logger = logging.getLogger(__name__)
-SPACES_ENDPOINT = 'https://nyc3.digitaloceanspaces.com'
 
 
 class MediaProcessingError(Exception):
@@ -59,25 +58,25 @@ def get_media_file_from_spaces(file_key: str, delete: bool = False) -> BytesIO:
     session = boto3.session.Session()
     client = session.client(
         's3',
-        region_name='nyc3',
-        endpoint_url=SPACES_ENDPOINT,
-        aws_access_key_id=os.getenv('SPACES_KEY'),
-        aws_secret_access_key=os.getenv('SPACES_SECRET')
+        region_name=os.getenv('STORAGE_REGION'),
+        endpoint_url=os.getenv('STORAGE_ENDPOINT'),
+        aws_access_key_id=os.getenv('STORAGE_KEY'),
+        aws_secret_access_key=os.getenv('STORAGE_SECRET')
     )
-    logger.debug(f"Getting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    logger.debug(f"Getting media file {file_key=} from {os.getenv('STORAGE_NAME')=}")
     response = client.get_object(
-        Bucket=os.getenv('SPACES_NAME'),
+        Bucket=os.getenv('STORAGE_NAME'),
         Key=file_key
     )
-    logger.debug(f"Got media file {file_key=} from {os.getenv('SPACES_NAME')=} with {response['ContentLength']} bytes")
+    logger.debug(f"Got media file {file_key=} from {os.getenv('STORAGE_NAME')=} with {response['ContentLength']} bytes")
     if delete:
-        logger.debug(f"Deleting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+        logger.debug(f"Deleting media file {file_key=} from {os.getenv('STORAGE_NAME')=}")
         client.delete_object(
-            Bucket=os.getenv('SPACES_NAME'),
+            Bucket=os.getenv('STORAGE_NAME'),
             Key=file_key
         )
-        logger.debug(f"Deleted media file {file_key=} from {os.getenv('SPACES_NAME')=}")
-    logger.debug(f"Returning media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+        logger.debug(f"Deleted media file {file_key=} from {os.getenv('STORAGE_NAME')=}")
+    logger.debug(f"Returning media file {file_key=} from {os.getenv('STORAGE_NAME')=}")
     return BytesIO(response['Body'].read())
 
 
@@ -89,14 +88,14 @@ def post_media_file_to_spaces(media_id: str, media_buffer: BytesIO, mime_type: s
         session = boto3.session.Session()
         client = session.client(
             's3',
-            region_name='nyc3',
-            endpoint_url=SPACES_ENDPOINT,
-            aws_access_key_id=os.getenv('SPACES_KEY'),
-            aws_secret_access_key=os.getenv('SPACES_SECRET')
+            region_name=os.getenv('STORAGE_REGION'),
+            endpoint_url=os.getenv('STORAGE_ENDPOINT'),
+            aws_access_key_id=os.getenv('STORAGE_KEY'),
+            aws_secret_access_key=os.getenv('STORAGE_SECRET')
         )
-        logger.debug(f"Backing up media file {media_id=} to {os.getenv('SPACES_NAME')=} with {mime_type=}")
+        logger.debug(f"Backing up media file {media_id=} to {os.getenv('STORAGE_NAME')=} with {mime_type=}")
         client.put_object(
-            Bucket=os.getenv('SPACES_NAME'),
+            Bucket=os.getenv('STORAGE_NAME'),
             Key=f'{media_id}.{get_media_extension(mime_type)}',
             Body=media_buffer,
             ContentType=mime_type,
@@ -113,17 +112,17 @@ def delete_media_file_from_spaces(file_key: str) -> None:
     session = boto3.session.Session()
     client = session.client(
         's3',
-        region_name='nyc3',
-        endpoint_url=SPACES_ENDPOINT,
-        aws_access_key_id=os.getenv('SPACES_KEY'),
-        aws_secret_access_key=os.getenv('SPACES_SECRET')
+        region_name=os.getenv('STORAGE_REGION'),
+        endpoint_url=os.getenv('STORAGE_ENDPOINT'),
+        aws_access_key_id=os.getenv('STORAGE_KEY'),
+        aws_secret_access_key=os.getenv('STORAGE_SECRET')
     )
-    logger.debug(f"Deleting media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    logger.debug(f"Deleting media file {file_key=} from {os.getenv('STORAGE_NAME')=}")
     client.delete_object(
-        Bucket=os.getenv('SPACES_NAME'),
+        Bucket=os.getenv('STORAGE_NAME'),
         Key=file_key
     )
-    logger.debug(f"Deleted media file {file_key=} from {os.getenv('SPACES_NAME')=}")
+    logger.debug(f"Deleted media file {file_key=} from {os.getenv('STORAGE_NAME')=}")
 
 
 def get_media_file_from_meta(file_url: str, media_id: str) -> BytesIO:
